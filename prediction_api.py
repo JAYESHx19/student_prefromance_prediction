@@ -34,7 +34,12 @@ app = FastAPI(
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],  # In production, specify your frontend domain
+<<<<<<< HEAD
     allow_credentials=True,
+=======
+    allow_origin_regex=".*",  # Allow any origin including null/file:// cases when served locally
+    allow_credentials=False,  # Must be False when using wildcard origins
+>>>>>>> dc5748a80e26c1ae85315f6c3ae94a31ebc1631d
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -238,6 +243,7 @@ async def predict(student_data: StudentData):
         raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
 
 if __name__ == "__main__":
+<<<<<<< HEAD
     import uvicorn
     import os
     print("Starting Student Performance Prediction API...")
@@ -246,3 +252,12 @@ if __name__ == "__main__":
     print("API documentation: http://127.0.0.1:8000/docs")
     print("Press Ctrl+C to stop the server")
     uvicorn.run("prediction_api:app", host="0.0.0.0", port=int(os.getenv("PORT", 8000)), reload=True)
+=======
+    print("Starting Student Performance Prediction API...")
+    print("API will be available at: http://127.0.0.1:8000")
+    print("Health check: http://127.0.0.1:8000/health")
+    print("API docs: http://127.0.0.1:8000/docs")
+    print("\nPress Ctrl+C to stop the server")
+    
+    uvicorn.run(app, host="127.0.0.1", port=8000)
+>>>>>>> dc5748a80e26c1ae85315f6c3ae94a31ebc1631d
