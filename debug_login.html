@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Debug Login</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        .test-section { margin: 20px 0; padding: 15px; border: 1px solid #ccc; }
+        button { padding: 10px 20px; margin: 5px; }
+        .error { color: red; }
+        .success { color: green; }
+    </style>
+</head>
+<body>
+    <h1>Login Debug Test</h1>
+    
+    <div class="test-section">
+        <h3>1. Firebase Initialization Test</h3>
+        <div id="firebase-status">Testing...</div>
+    </div>
+    
+    <div class="test-section">
+        <h3>2. Login Form Test</h3>
+        <form id="test-login-form">
+            <input type="email" id="test-email" placeholder="Email" value="test@example.com"><br><br>
+            <input type="password" id="test-password" placeholder="Password" value="password123"><br><br>
+            <button type="submit">Test Login</button>
+        </form>
+        <div id="login-status"></div>
+    </div>
+    
+    <div class="test-section">
+        <h3>3. Console Logs</h3>
+        <div id="console-logs"></div>
+    </div>
+
+    <script type="module">
+        const logDiv = document.getElementById('console-logs');
+        const originalLog = console.log;
+        const originalError = console.error;
+        
+        console.log = function(...args) {
+            originalLog.apply(console, args);
+            logDiv.innerHTML += '<div>' + args.join(' ') + '</div>';
+        };
+        
+        console.error = function(...args) {
+            originalError.apply(console, args);
+            logDiv.innerHTML += '<div class="error">ERROR: ' + args.join(' ') + '</div>';
+        };
+        
+        try {
+            console.log('Starting Firebase import...');
+            
+            const { initializeApp } = await import("https://www.gstatic.com/firebasejs/12.0.0/firebase-app.js");
+            const { getAuth, signInWithEmailAndPassword, onAuthStateChanged } = await import("https://www.gstatic.com/firebasejs/12.0.0/firebase-auth.js");
+            
+            console.log('Firebase modules imported successfully');
+            
+            const firebaseConfig = {
+                apiKey: "AIzaSyDVWw8FqNJQho7V1fKieeCsbUAEfFckyno",
+                authDomain: "student-prediction-568af.firebaseapp.com",
+                projectId: "student-prediction-568af",
+                storageBucket: "student-prediction-568af.firebasestorage.app",
+                messagingSenderId: "360498732807",
+                appId: "1:360498732807:web:e3f2b87a69ea8e022a2fa2"
+            };
+            
+            const app = initializeApp(firebaseConfig);
+            const auth = getAuth(app);
+            
+            document.getElementById('firebase-status').innerHTML = '<span class="success">✓ Firebase initialized successfully</span>';
+            console.log('Firebase app initialized');
+            
+            // Test auth state listener
+            onAuthStateChanged(auth, (user) => {
+                if (user) {
+                    console.log('User detected:', user.email);
+                    document.getElementById('login-status').innerHTML = '<span class="success">✓ User logged in: ' + user.email + '</span>';
+                } else {
+                    console.log('No user logged in');
+                    document.getElementById('login-status').innerHTML = 'No user logged in';
+                }
+            });
+            
+            // Test login form
+            document.getElementById('test-login-form').addEventListener('submit', async (e) => {
+                e.preventDefault();
+                console.log('Login form submitted');
+                
+                const email = document.getElementById('test-email').value;
+                const password = document.getElementById('test-password').value;
+                
+                console.log('Attempting login with:', email);
+                
+                try {
+                    const userCredential = await signInWithEmailAndPassword(auth, email, password);
+                    console.log('Login successful:', userCredential.user.email);
+                } catch (error) {
+                    console.error('Login failed:', error.code, error.message);
+                    document.getElementById('login-status').innerHTML = '<span class="error">Login failed: ' + error.message + '</span>';
+                }
+            });
+            
+        } catch (error) {
+            console.error('Setup error:', error);
+            document.getElementById('firebase-status').innerHTML = '<span class="error">✗ Firebase setup failed: ' + error.message + '</span>';
+        }
+    </script>
+</body>
+</html>

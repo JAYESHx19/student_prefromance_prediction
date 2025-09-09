@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Login Test</title>
+</head>
+<body>
+    <h1>Firebase Login Test</h1>
+    <div id="status">Checking Firebase...</div>
+    
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-app.js";
+        import { getAuth, signInWithEmailAndPassword, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-auth.js";
+        
+        const firebaseConfig = {
+            apiKey: "AIzaSyDVWw8FqNJQho7V1fKieeCsbUAEfFckyno",
+            authDomain: "student-prediction-568af.firebaseapp.com",
+            projectId: "student-prediction-568af",
+            storageBucket: "student-prediction-568af.firebasestorage.app",
+            messagingSenderId: "360498732807",
+            appId: "1:360498732807:web:e3f2b87a69ea8e022a2fa2"
+        };
+        
+        try {
+            const app = initializeApp(firebaseConfig);
+            const auth = getAuth(app);
+            
+            document.getElementById('status').innerHTML = 'Firebase initialized successfully!<br>Auth domain: ' + firebaseConfig.authDomain;
+            
+            onAuthStateChanged(auth, (user) => {
+                if (user) {
+                    document.getElementById('status').innerHTML += '<br>User logged in: ' + user.email;
+                } else {
+                    document.getElementById('status').innerHTML += '<br>No user logged in';
+                }
+            });
+            
+        } catch (error) {
+            document.getElementById('status').innerHTML = 'Firebase error: ' + error.message;
+            console.error('Firebase error:', error);
+        }
+    </script>
+</body>
+</html>
