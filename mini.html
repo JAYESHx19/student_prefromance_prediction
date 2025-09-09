@@ -1,0 +1,3155 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Student Performance Dashboard</title>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    
+
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <!-- Firebase SDK -->
+    <script type="module">
+        // Import the functions you need from the SDKs you need
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-app.js";
+        import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, sendPasswordResetEmail, onAuthStateChanged, GoogleAuthProvider, signInWithPopup, signInWithRedirect, getRedirectResult, updateProfile } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-auth.js";
+        import { getFirestore, collection, addDoc, query, where, orderBy, limit, getDocs, serverTimestamp } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-firestore.js";
+        import { getAnalytics } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-analytics.js";
+
+        // Your web app's Firebase configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyDVWw8FqNJQho7V1fKieeCsbUAEfFckyno",
+            authDomain: "student-prediction-568af.firebaseapp.com",
+            projectId: "student-prediction-568af",
+            storageBucket: "student-prediction-568af.firebasestorage.app",
+            messagingSenderId: "360498732807",
+            appId: "1:360498732807:web:e3f2b87a69ea8e022a2fa2",
+            measurementId: "G-24EYM1PR9V"
+        };
+
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        const analytics = getAnalytics(app);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        // Make Firebase services available globally
+        window.firebaseAuth = auth;
+        window.firebaseDb = db;
+        window.firebaseAuthFunctions = {
+            signInWithEmailAndPassword,
+            createUserWithEmailAndPassword,
+            signOut,
+            sendPasswordResetEmail,
+            onAuthStateChanged,
+            GoogleAuthProvider,
+            signInWithPopup,
+            signInWithRedirect,
+            getRedirectResult,
+            updateProfile
+        };
+        
+        // Debug Firebase initialization
+        console.log('Firebase initialized successfully');
+        console.log('Auth object:', auth);
+        console.log('GoogleAuthProvider available:', !!GoogleAuthProvider);
+        console.log('signInWithPopup available:', !!signInWithPopup);
+        window.firebaseDbFunctions = {
+            collection,
+            addDoc,
+            query,
+            where,
+            orderBy,
+            limit,
+            getDocs,
+            serverTimestamp
+        };
+    </script>
+
+    <style>
+        /* Custom scrollbar for a cleaner look */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #1f2937;
+            /* dark:bg-gray-800 */
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #4b5563;
+            /* dark:bg-gray-600 */
+            border-radius: 10px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #6b7280;
+            /* dark:bg-gray-500 */
+        }
+
+        /* Style for active navigation link */
+        .sidebar-link.active {
+            background-color: #3b82f6;
+            /* bg-blue-600 */
+            color: white;
+        }
+
+        /* Hide all content pages by default */
+        .content-page {
+            display: none;
+        }
+
+        /* Show the active content page */
+        .content-page.active {
+            display: block;
+        }
+
+        /* Loading spinner */
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255, 255, 255, .3);
+            border-radius: 50%;
+            border-top-color: #fff;
+            animation: spin 1s ease-in-out infinite;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+    </style>
+</head>
+
+<body class="bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-100 font-sans antialiased">
+
+    <!-- Login Page -->
+    <div id="login-page" class="flex items-center justify-center min-h-screen bg-gray-900">
+        <div class="w-full max-w-md p-8 space-y-8 bg-gray-800 rounded-2xl shadow-2xl">
+            <div class="text-center">
+                <div class="inline-block bg-blue-600 p-3 rounded-full mb-4">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                        class="text-white">
+                        <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20" />
+                    </svg>
+                </div>
+                <h1 class="text-3xl font-bold text-white">Welcome Back</h1>
+                <p class="text-gray-400">Sign in to your dashboard</p>
+            </div>
+            <form id="login-form" class="space-y-6">
+                <div class="relative">
+                    <input id="email-input" placeholder="Email"
+                        class="w-full px-4 py-3 text-white bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        type="email">
+                </div>
+                <div class="relative">
+                    <input id="password-input" placeholder="Password"
+                        class="w-full px-4 py-3 text-white bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        type="password">
+                </div>
+                <div class="flex items-center justify-between">
+                    <label class="flex items-center text-sm text-gray-400">
+                        <input class="w-4 h-4 mr-2 bg-gray-700 border-gray-600 rounded focus:ring-blue-500"
+                            type="checkbox">
+                        Remember me
+                    </label>
+                    <a href="#" id="forgot-password" class="text-sm text-blue-500 hover:underline">Forgot Password?</a>
+                </div>
+                <div>
+                    <button type="submit" id="login-button"
+                        class="w-full px-4 py-3 font-semibold text-white bg-blue-600 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-800 focus:ring-blue-500 transition-transform transform hover:scale-105">
+                        <span id="login-text">Login</span>
+                        <span id="login-loading" class="loading hidden"></span>
+                    </button>
+                </div>
+
+                <div class="relative">
+                    <div class="absolute inset-0 flex items-center">
+                        <div class="w-full border-t border-gray-600"></div>
+                    </div>
+                    <div class="relative flex justify-center text-sm">
+                        <span class="px-2 bg-gray-800 text-gray-400">Or continue with</span>
+                    </div>
+                </div>
+
+                <div>
+                    <button type="button" id="google-signin-btn"
+                        class="w-full px-4 py-3 font-semibold text-gray-800 bg-white rounded-lg hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-800 focus:ring-blue-500 transition-transform transform hover:scale-105 flex items-center justify-center space-x-2">
+                        <svg class="w-5 h-5" viewBox="0 0 24 24">
+                            <path fill="#4285F4"
+                                d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
+                            <path fill="#34A853"
+         
+                                d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
+                            <path fill="#FBBC05"
+                                d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" />
+                            <path fill="#EA4335"
+                                d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
+                        </svg>
+                        <span id="google-text">Continue with Google</span>
+                        <span id="google-loading" class="loading hidden"></span>
+                    </button>
+                    
+
+                </div>
+
+                <div class="text-center">
+                    <p class="text-gray-400">Don't have an account? <a href="#" id="signup-link"
+                            class="text-blue-500 hover:underline">Sign up</a></p>
+                </div>
+            </form>
+            <div id="auth-error" class="hidden text-red-500 text-center text-sm"></div>
+        </div>
+    </div>
+
+    <!-- Signup Page -->
+    <div id="signup-page" class="hidden flex items-center justify-center min-h-screen bg-gray-900">
+        <div class="w-full max-w-md p-8 space-y-8 bg-gray-800 rounded-2xl shadow-2xl">
+            <div class="text-center">
+                <div class="inline-block bg-green-600 p-3 rounded-full mb-4">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                        class="text-white">
+                        <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+                        <circle cx="9" cy="7" r="4" />
+                        <path d="m22 21-2-2" />
+                        <path d="M16 16h6" />
+                    </svg>
+                </div>
+                <h1 class="text-3xl font-bold text-white">Create Account</h1>
+                <p class="text-gray-400">Join us to get started</p>
+            </div>
+            <form id="signup-form" class="space-y-6">
+                <div class="relative">
+                    <input id="signup-firstname-input" placeholder="First Name"
+                        class="w-full px-4 py-3 text-white bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+                        type="text" required>
+                </div>
+                <div class="relative">
+                    <input id="signup-email-input" placeholder="Email"
+                        class="w-full px-4 py-3 text-white bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+                        type="email" required>
+                </div>
+                <div class="relative">
+                    <input id="signup-password-input" placeholder="Password"
+                        class="w-full px-4 py-3 text-white bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+                        type="password" required>
+                </div>
+                <div class="relative">
+                    <input id="signup-confirm-password-input" placeholder="Confirm Password"
+                        class="w-full px-4 py-3 text-white bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+                        type="password" required>
+                </div>
+                <div>
+                    <button type="submit" id="signup-button"
+                        class="w-full px-4 py-3 font-semibold text-white bg-green-600 rounded-lg hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-800 focus:ring-green-500 transition-transform transform hover:scale-105">
+                        <span id="signup-text">Create Account</span>
+                        <span id="signup-loading" class="loading hidden"></span>
+                    </button>
+                </div>
+
+                <div class="text-center">
+                    <p class="text-gray-400">Already have an account? <a href="#" id="login-link"
+                            class="text-green-500 hover:underline">Sign in</a></p>
+                </div>
+            </form>
+            <div id="signup-error" class="hidden text-red-500 text-center text-sm"></div>
+        </div>
+    </div>
+
+    <div id="dashboard-main" class="hidden">
+        <div class="flex h-screen bg-gray-100 dark:bg-gray-900">
+            <aside id="sidebar"
+                class="w-64 bg-white dark:bg-gray-800 shadow-xl flex flex-col transition-all duration-300">
+                <div class="flex items-center justify-center h-20 border-b dark:border-gray-700">
+                    <div class="flex items-center space-x-2">
+                        <div class="bg-blue-600 p-2 rounded-lg">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"
+                                fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                stroke-linejoin="round" class="text-white">
+                                <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20" />
+                            </svg>
+                        </div>
+                        <h1 class="text-xl font-bold text-gray-800 dark:text-white">EduPredict</h1>
+                    </div>
+                </div>
+                <nav class="flex-1 px-4 py-4 space-y-2 overflow-y-auto">
+                </nav>
+                <div class="px-4 py-4 border-t dark:border-gray-700">
+                    <a href="#" id="logout-button"
+                        class="flex items-center w-full px-4 py-2 text-gray-600 dark:text-gray-400 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-white">
+                        <i data-lucide="log-out" class="w-5 h-5 mr-3"></i>
+                        Logout
+                    </a>
+                </div>
+            </aside>
+
+            <div class="flex-1 flex flex-col overflow-hidden">
+                <header
+                    class="flex items-center justify-between h-20 px-6 bg-white dark:bg-gray-800 border-b dark:border-gray-700">
+                    <div class="flex items-center">
+                        <button id="sidebar-toggle"
+                            class="p-2 -ml-2 mr-2 rounded-md text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 focus:outline-none">
+                            <i data-lucide="menu" class="w-6 h-6"></i>
+                        </button>
+                        <h2 id="page-title" class="text-2xl font-semibold text-gray-800 dark:text-white">Dashboard</h2>
+                    </div>
+                    <div class="flex items-center space-x-6">
+                        <div class="relative">
+                            <select id="role-switcher"
+                                class="bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 rounded-md py-2 pl-3 pr-8 appearance-none focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                <option value="student">Student View</option>
+                            </select>
+                            <i data-lucide="users"
+                                class="w-4 h-4 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none"></i>
+                        </div>
+
+                        <div class="relative">
+                            <button class="flex items-center space-x-2">
+                                <img id="user-avatar" src="https://placehold.co/40x40/7c3aed/ffffff?text=S"
+                                    alt="User Avatar" class="w-10 h-10 rounded-full">
+                                <span id="user-name" class="hidden md:block font-medium">Alex Johnson</span>
+                                <i data-lucide="chevron-down" class="w-4 h-4"></i>
+                            </button>
+                        </div>
+                    </div>
+                </header>
+
+                <main class="flex-1 p-6 overflow-y-auto">
+                    <div id="page-dashboard" class="content-page active">
+                        <div class="space-y-8">
+                            <!-- Welcome Section -->
+                            <div class="p-8 bg-white dark:bg-gray-800 rounded-xl shadow-lg text-center">
+                                <h2 class="text-4xl font-bold text-gray-800 dark:text-white" id="welcome-heading">
+                                    Welcome to EduPredict, <span id="welcome-user-name">Student</span>!
+                                </h2>
+                                <p class="mt-2 text-lg text-gray-500 dark:text-gray-400">Your personal AI-powered academic success partner.</p>
+                            </div>
+
+                            <!-- Quick Stats Overview -->
+                            <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+                                <div class="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-lg">
+                                    <div class="flex items-center">
+                                        <div class="p-3 rounded-full bg-blue-100 dark:bg-blue-900/30">
+                                            <i data-lucide="trending-up" class="w-6 h-6 text-blue-600 dark:text-blue-400"></i>
+                                        </div>
+                                        <div class="ml-4">
+                                            <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Current GPA</p>
+                                            <p class="text-2xl font-semibold text-gray-900 dark:text-white" id="current-gpa">--</p>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-lg">
+                                    <div class="flex items-center">
+                                        <div class="p-3 rounded-full bg-green-100 dark:bg-green-900/30">
+                                            <i data-lucide="target" class="w-6 h-6 text-green-600 dark:text-green-400"></i>
+                                        </div>
+                                        <div class="ml-4">
+                                            <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Predicted GPA</p>
+                                            <p class="text-2xl font-semibold text-gray-900 dark:text-white" id="predicted-gpa">--</p>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-lg">
+                                    <div class="flex items-center">
+                                        <div class="p-3 rounded-full bg-yellow-100 dark:bg-yellow-900/30">
+                                            <i data-lucide="book-open" class="w-6 h-6 text-yellow-600 dark:text-yellow-400"></i>
+                                        </div>
+                                        <div class="ml-4">
+                                            <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Study Hours</p>
+                                            <p class="text-2xl font-semibold text-gray-900 dark:text-white" id="study-hours">--</p>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-lg">
+                                    <div class="flex items-center">
+                                        <div class="p-3 rounded-full bg-purple-100 dark:bg-purple-900/30">
+                                            <i data-lucide="award" class="w-6 h-6 text-purple-600 dark:text-purple-400"></i>
+                                        </div>
+                                        <div class="ml-4">
+                                            <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Risk Level</p>
+                                            <p class="text-2xl font-semibold text-gray-900 dark:text-white" id="risk-level">--</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Recent Activity -->
+                            <div class="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6">
+                                <h3 class="text-xl font-semibold mb-4">Recent Activity</h3>
+                                <div class="space-y-4" id="recent-activity">
+                                    <div class="flex items-center p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                                        <div class="p-2 rounded-full bg-blue-100 dark:bg-blue-900/30">
+                                            <i data-lucide="user-plus" class="w-4 h-4 text-blue-600 dark:text-blue-400"></i>
+                                        </div>
+                                        <div class="ml-3">
+                                            <p class="text-sm font-medium text-gray-900 dark:text-white">Welcome to EduPredict!</p>
+                                            <p class="text-xs text-gray-500 dark:text-gray-400">Get started by making your first prediction</p>
+                                        </div>
+                                        <div class="ml-auto text-xs text-gray-500 dark:text-gray-400">Just now</div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div>
+                                <h3 class="text-2xl font-semibold mb-6">How Our Website Works</h3>
+                                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                                    <div
+                                        class="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-lg text-center flex flex-col items-center">
+                                        <img src="https://placehold.co/600x400/3b82f6/ffffff?text=1.+Input+Data"
+                                            alt="Data Input" class="rounded-lg mb-4 w-full h-40 object-cover">
+                                        <h4 class="text-xl font-semibold mb-2">Input Your Data</h4>
+                                        <p class="text-gray-600 dark:text-gray-400 flex-grow">Navigate to the 'Predictions' page
+                                            and enter your current grades, test scores, and attendance.</p>
+                                    </div>
+                                    <div
+                                        class="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-lg text-center flex flex-col items-center">
+                                        <img src="https://placehold.co/600x400/8b5cf6/ffffff?text=2.+AI+Analysis"
+                                            alt="AI Analysis" class="rounded-lg mb-4 w-full h-40 object-cover">
+                                        <h4 class="text-xl font-semibold mb-2">Get AI Predictions</h4>
+                                        <p class="text-gray-600 dark:text-gray-400">Our advanced ML models analyze your
+                                            data to predict your future academic performance and identify risk areas.
+                                        </p>
+                                    </div>
+                                    <div
+                                        class="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-lg text-center flex flex-col items-center">
+                                        <img src="https://placehold.co/600x400/22c55e/ffffff?text=3.+Succeed"
+                                            alt="Recommendations" class="rounded-lg mb-4 w-full h-40 object-cover">
+                                        <h4 class="text-xl font-semibold mb-2">Receive Guidance</h4>
+                                        <p class="text-gray-600 dark:text-gray-400">Explore personalized recommendations
+                                            and study materials to improve your scores and achieve your goals.</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div>
+                                <h3 class="text-2xl font-semibold mb-6">Get Started</h3>
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    <div
+                                        class="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-lg flex flex-col items-center justify-center text-center">
+                                        <i data-lucide="bar-chart-2" class="w-12 h-12 text-blue-500 mb-4"></i>
+                                        <h4 class="text-xl font-semibold mb-2">Make a Prediction</h4>
+                                        <p class="text-gray-500 dark:text-gray-400 mb-4">See where you stand and what
+                                            your future scores could look like.</p>
+                                        <button id="go-to-predictions"
+                                            class="w-full max-w-xs px-4 py-3 font-semibold text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-transform transform hover:scale-105">
+                                            Go to Predictions
+                                        </button>
+                                    </div>
+                                    <div
+                                        class="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-lg flex flex-col items-center justify-center text-center">
+                                        <i data-lucide="book-open" class="w-12 h-12 text-green-500 mb-4"></i>
+                                        <h4 class="text-xl font-semibold mb-2">Browse Resources</h4>
+                                        <p class="text-gray-500 dark:text-gray-400 mb-4">Access curated study materials
+                                            to boost your knowledge.</p>
+                                        <button id="go-to-study-materials"
+                                            class="w-full max-w-xs px-4 py-3 font-semibold text-white bg-green-600 rounded-lg hover:bg-green-700 transition-transform transform hover:scale-105">
+                                            View Study Materials
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="page-predictions" class="content-page">
+                        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                            <div class="lg:col-span-2 bg-white dark:bg-gray-800 p-8 rounded-xl shadow-lg">
+                                <h3 class="text-2xl font-semibold mb-6">Make a New Prediction</h3>
+                                <div class="mb-6 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+                                    <h4 class="text-lg font-semibold text-blue-800 dark:text-blue-200 mb-2">📊 Prediction Model Information</h4>
+                                    <p class="text-blue-700 dark:text-blue-300 text-sm">
+                                        Our AI model is trained on real student performance data and analyzes multiple factors to predict your academic success. 
+                                        The model considers your academic history, study habits, and personal circumstances to provide accurate predictions.
+                                    </p>
+                                </div>
+                                <form class="space-y-6">
+                                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                        <div>
+                                            <label
+                                                class="block text-sm font-medium text-gray-500 dark:text-gray-400 mb-2">Previous Grade GPA (0-4.0)</label>
+                                            <input name="previousGpa" type="number" step="0.1" min="0" max="4" placeholder="e.g., 3.2"
+                                                class="w-full bg-gray-100 dark:bg-gray-700 border-transparent rounded-lg p-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                                            <p class="text-xs text-gray-400 mt-1">Scale: 0.0 (F) to 4.0 (A+)</p>
+                                        </div>
+                                        <div>
+                                            <label
+                                                class="block text-sm font-medium text-gray-500 dark:text-gray-400 mb-2">Attendance Percentage (0-100%)</label>
+                                            <input name="attendance" type="number" min="0" max="100" placeholder="e.g., 92"
+                                                class="w-full bg-gray-100 dark:bg-gray-700 border-transparent rounded-lg p-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                                            <p class="text-xs text-gray-400 mt-1">Range: 0% to 100%</p>
+                                        </div>
+                                        <div>
+                                            <label
+                                                class="block text-sm font-medium text-gray-500 dark:text-gray-400 mb-2">Assignments Completed (0-100%)</label>
+                                            <input name="assignmentsCompleted" type="number" min="0" max="100" placeholder="e.g., 85"
+                                                class="w-full bg-gray-100 dark:bg-gray-700 border-transparent rounded-lg p-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                                            <p class="text-xs text-gray-400 mt-1">Range: 0% to 100%</p>
+                                        </div>
+                                        <div>
+                                            <label
+                                                class="block text-sm font-medium text-gray-500 dark:text-gray-400 mb-2">Weekly Study Hours (0-25)</label>
+                                            <input name="studyHours" type="number" min="0" max="25" placeholder="e.g., 10"
+                                                class="w-full bg-gray-100 dark:bg-gray-700 border-transparent rounded-lg p-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                                            <p class="text-xs text-gray-400 mt-1">Range: 0 to 25 hours per week</p>
+                                        </div>
+                                        <div>
+                                            <label
+                                                class="block text-sm font-medium text-gray-500 dark:text-gray-400 mb-2">Parental Education Level</label>
+                                            <select name="parentalEducation"
+                                                class="w-full bg-gray-100 dark:bg-gray-700 border-transparent rounded-lg p-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                                                <option value="0">None</option>
+                                                <option value="1">Primary School</option>
+                                                <option value="2">Middle School</option>
+                                                <option value="3">High School</option>
+                                                <option value="4">Bachelor's Degree</option>
+                                                <option value="5">Master's or Higher</option>
+                                            </select>
+                                            <p class="text-xs text-gray-400 mt-1">Based on highest education level</p>
+                                        </div>
+                                        <div>
+                                            <label
+                                                class="block text-sm font-medium text-gray-500 dark:text-gray-400 mb-2">Socio-Economic Status</label>
+                                            <select name="socioEconomicStatus"
+                                                class="w-full bg-gray-100 dark:bg-gray-700 border-transparent rounded-lg p-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                                                <option value="Low">Low</option>
+                                                <option value="Medium" selected>Medium</option>
+                                                <option value="High">High</option>
+                                            </select>
+                                            <p class="text-xs text-gray-400 mt-1">Family income and social status</p>
+                                        </div>
+                                        <div>
+                                            <label
+                                                class="block text-sm font-medium text-gray-500 dark:text-gray-400 mb-2">Extracurricular Activities</label>
+                                            <select name="extracurricularActivities"
+                                                class="w-full bg-gray-100 dark:bg-gray-700 border-transparent rounded-lg p-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                                                <option value="0">None</option>
+                                                <option value="1">1-2 activities</option>
+                                                <option value="2">3 or more activities</option>
+                                            </select>
+                                            <p class="text-xs text-gray-400 mt-1">Sports, clubs, music, etc.</p>
+                                        </div>
+                                        <div>
+                                            <label
+                                                class="block text-sm font-medium text-gray-500 dark:text-gray-400 mb-2">Has Private Tutor</label>
+                                            <select name="hasTutor"
+                                                class="w-full bg-gray-100 dark:bg-gray-700 border-transparent rounded-lg p-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                                                <option value="0">No</option>
+                                                <option value="1">Yes</option>
+                                            </select>
+                                            <p class="text-xs text-gray-400 mt-1">Private tutoring outside school</p>
+                                        </div>
+                                        <div>
+                                            <label
+                                                class="block text-sm font-medium text-gray-500 dark:text-gray-400 mb-2">School Travel Time (minutes)</label>
+                                            <input name="travelTime" type="number" min="5" max="120" placeholder="e.g., 20"
+                                                class="w-full bg-gray-100 dark:bg-gray-700 border-transparent rounded-lg p-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                                            <p class="text-xs text-gray-400 mt-1">One-way travel time to school</p>
+                                        </div>
+                                        <div>
+                                            <label
+                                                class="block text-sm font-medium text-gray-500 dark:text-gray-400 mb-2">Internet Access at Home</label>
+                                            <select name="internetAccess"
+                                                class="w-full bg-gray-100 dark:bg-gray-700 border-transparent rounded-lg p-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                                                <option value="1">Yes</option>
+                                                <option value="0">No</option>
+                                            </select>
+                                            <p class="text-xs text-gray-400 mt-1">Reliable internet connection</p>
+                                        </div>
+                                        <div>
+                                            <label
+                                                class="block text-sm font-medium text-gray-500 dark:text-gray-400 mb-2">Student Age (16-18)</label>
+                                            <input name="age" type="number" min="16" max="18" placeholder="e.g., 16"
+                                                class="w-full bg-gray-100 dark:bg-gray-700 border-transparent rounded-lg p-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                                            <p class="text-xs text-gray-400 mt-1">Current age in years</p>
+                                    </div>
+                                        <div>
+                                            <label
+                                                class="block text-sm font-medium text-gray-500 dark:text-gray-400 mb-2">Gender</label>
+                                            <select name="gender"
+                                                class="w-full bg-gray-100 dark:bg-gray-700 border-transparent rounded-lg p-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                                                <option value="1">Male</option>
+                                                <option value="0">Female</option>
+                                            </select>
+                                            <p class="text-xs text-gray-400 mt-1">For demographic analysis</p>
+                                        </div>
+                                    </div>
+                                    <div class="pt-4 flex gap-4">
+                                        <button type="button" id="run-prediction-btn"
+                                            class="flex-1 px-4 py-3 font-semibold text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-transform transform hover:scale-105">
+                                            <span id="prediction-text">Run Prediction</span>
+                                            <span id="prediction-loading" class="loading hidden"></span>
+                                        </button>
+                                        <button type="button" id="fill-sample-data-btn"
+                                            class="px-4 py-3 font-semibold text-blue-600 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-900/40 transition-colors">
+                                            Fill Sample Data
+                                        </button>
+                                    </div>
+                                    <!-- Simplified Result (always visible after prediction) -->
+                                    <div id="simple-result" class="mt-4 p-4 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 hidden">
+                                        <div class="flex items-center justify-between">
+                                            <div>
+                                                <p class="text-sm text-gray-500 dark:text-gray-400">Predicted Score</p>
+                                                <p id="simple-prediction-score" class="text-2xl font-bold text-blue-600">--%</p>
+                                            </div>
+                                            <div>
+                                                <span id="simple-risk-chip" class="px-3 py-1 rounded-full text-sm font-semibold bg-gray-500/20 text-gray-500">--</span>
+                                            </div>
+                                        </div>
+                                        <p id="simple-result-note" class="mt-2 text-xs text-gray-500 dark:text-gray-400">Run prediction to see results here.</p>
+                                    </div>
+                                    
+                                    <div class="mt-6 p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                                        <h4 class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">💡 Typical Ranges (Based on Student Data)</h4>
+                                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs text-gray-600 dark:text-gray-400">
+                                            <div>
+                                                <strong>GPA:</strong> 2.0 - 4.0 (Average: 3.1)<br>
+                                                <strong>Attendance:</strong> 70% - 100% (Average: 89%)<br>
+                                                <strong>Assignments:</strong> 55% - 100% (Average: 87%)<br>
+                                                <strong>Study Hours:</strong> 1 - 20 hours/week (Average: 9.5)
+                                            </div>
+                                            <div>
+                                                <strong>Travel Time:</strong> 10 - 60 minutes (Average: 28)<br>
+                                                <strong>Age:</strong> 16 - 18 years<br>
+                                                <strong>Extracurricular:</strong> 0-3+ activities<br>
+                                                <strong>Parental Education:</strong> 0-5 levels
+                                            </div>
+                                        </div>
+                                    </div>
+                                </form>
+                            </div>
+                            <div
+                                class="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-lg flex flex-col items-center justify-center text-center">
+                                <h3 class="text-xl font-semibold mb-4">Prediction Result</h3>
+                                <div class="text-center">
+                                    <p id="predicted-score-label" class="text-5xl font-bold text-blue-500 mb-2">--%</p>
+                                    <p class="text-lg text-gray-500 dark:text-gray-400 mb-4">Predicted Performance Score</p>
+                                    <div id="risk-level-label" class="inline-block px-6 py-3 rounded-full bg-gray-500/20 text-gray-300 font-semibold text-lg">--</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="page-study-materials" class="content-page">
+                        <div class="space-y-8">
+                            <div>
+                                <h3 class="text-2xl font-semibold mb-6">Curated Study Resources</h3>
+                                <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+
+                                    <div class="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-lg flex flex-col">
+                                        <img src="https://placehold.co/600x400/1e40af/ffffff?text=Khan+Academy"
+                                            alt="Khan Academy" class="rounded-lg mb-4 w-full h-40 object-cover">
+                                        <h4 class="text-xl font-semibold mb-2">Khan Academy</h4>
+                                        <p class="text-gray-600 dark:text-gray-400 flex-grow">Free online courses,
+                                            lessons & practice for math, science, and more. A great resource for any
+                                            subject.</p>
+                                        <a href="https://www.khanacademy.org/" target="_blank"
+                                            class="mt-4 inline-block w-full text-center px-4 py-2 font-semibold text-white bg-blue-600 rounded-lg hover:bg-blue-700">Visit
+                                            Resource</a>
+                                    </div>
+
+                                    <div class="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-lg flex flex-col">
+                                        <img src="https://placehold.co/600x400/4338ca/ffffff?text=Quizlet" alt="Quizlet"
+                                            class="rounded-lg mb-4 w-full h-40 object-cover">
+                                        <h4 class="text-xl font-semibold mb-2">Quizlet</h4>
+                                        <p class="text-gray-600 dark:text-gray-400 flex-grow">Master any subject with
+                                            flashcards, learning games, and other study tools. Perfect for memorization.
+                                        </p>
+                                        <a href="https://quizlet.com/" target="_blank"
+                                            class="mt-4 inline-block w-full text-center px-4 py-2 font-semibold text-white bg-indigo-600 rounded-lg hover:bg-indigo-700">Visit
+                                            Resource</a>
+                                    </div>
+
+                                    <div class="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-lg flex flex-col">
+                                        <img src="https://placehold.co/600x400/f59e0b/000000?text=Crash+Course"
+                                            alt="Crash Course" class="rounded-lg mb-4 w-full h-40 object-cover">
+                                        <h4 class="text-xl font-semibold mb-2">Crash Course</h4>
+                                        <p class="text-gray-600 dark:text-gray-400 flex-grow">Fun, engaging, and
+                                            high-quality educational videos on a wide variety of subjects from history
+                                            to science.</p>
+                                        <a href="https://www.youtube.com/@crashcourse" target="_blank"
+                                            class="mt-4 inline-block w-full text-center px-4 py-2 font-semibold text-black bg-amber-400 rounded-lg hover:bg-amber-500">Visit
+                                            Resource</a>
+                                    </div>
+
+                                    <div class="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-lg flex flex-col">
+                                        <img src="https://placehold.co/600x400/0284c7/ffffff?text=Coursera"
+                                            alt="Coursera" class="rounded-lg mb-4 w-full h-40 object-cover">
+                                        <h4 class="text-xl font-semibold mb-2">Coursera</h4>
+                                        <p class="text-gray-600 dark:text-gray-400 flex-grow">Access courses from
+                                            world-class universities and companies. Ideal for deep dives into specific
+                                            topics.</p>
+                                        <a href="https://www.coursera.org/" target="_blank"
+                                            class="mt-4 inline-block w-full text-center px-4 py-2 font-semibold text-white bg-sky-600 rounded-lg hover:bg-sky-700">Visit
+                                            Resource</a>
+                                    </div>
+
+                                    <div class="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-lg flex flex-col">
+                                        <img src="https://placehold.co/600x400/059669/ffffff?text=GeeksforGeeks"
+                                            alt="GeeksforGeeks" class="rounded-lg mb-4 w-full h-40 object-cover">
+                                        <h4 class="text-xl font-semibold mb-2">GeeksforGeeks</h4>
+                                        <p class="text-gray-600 dark:text-gray-400 flex-grow">A go-to resource for
+                                            computer science students. Articles, coding problems, and interview prep.
+                                        </p>
+                                        <a href="https://www.geeksforgeeks.org/" target="_blank"
+                                            class="mt-4 inline-block w-full text-center px-4 py-2 font-semibold text-white bg-emerald-600 rounded-lg hover:bg-emerald-700">Visit
+                                            Resource</a>
+                                    </div>
+
+                                    <div class="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-lg flex flex-col">
+                                        <img src="https://placehold.co/600x400/94a3b8/0f172a?text=Project+Gutenberg"
+                                            alt="Project Gutenberg" class="rounded-lg mb-4 w-full h-40 object-cover">
+                                        <h4 class="text-xl font-semibold mb-2">Project Gutenberg</h4>
+                                        <p class="text-gray-600 dark:text-gray-400 flex-grow">A library of over 70,000
+                                            free eBooks. Find classic literature and reference materials here.</p>
+                                        <a href="https://www.gutenberg.org/" target="_blank"
+                                            class="mt-4 inline-block w-full text-center px-4 py-2 font-semibold text-slate-900 bg-slate-300 rounded-lg hover:bg-slate-400">Visit
+                                            Resource</a>
+                                    </div>
+
+                                    <div class="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-lg flex flex-col">
+                                        <img src="https://placehold.co/600x400/84cc16/1a2e05?text=Duolingo"
+                                            alt="Duolingo" class="rounded-lg mb-4 w-full h-40 object-cover">
+                                        <h4 class="text-xl font-semibold mb-2">Duolingo</h4>
+                                        <p class="text-gray-600 dark:text-gray-400 flex-grow">Learn a new language for
+                                            free with fun, bite-sized lessons. Gamified learning makes it easy to stay
+                                            motivated.</p>
+                                        <a href="https://www.duolingo.com/" target="_blank"
+                                            class="mt-4 inline-block w-full text-center px-4 py-2 font-semibold text-white bg-lime-500 rounded-lg hover:bg-lime-600">Visit
+                                            Resource</a>
+                                    </div>
+
+                                    <div class="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-lg flex flex-col">
+                                        <img src="https://placehold.co/600x400/f97316/ffffff?text=WolframAlpha"
+                                            alt="WolframAlpha" class="rounded-lg mb-4 w-full h-40 object-cover">
+                                        <h4 class="text-xl font-semibold mb-2">WolframAlpha</h4>
+                                        <p class="text-gray-600 dark:text-gray-400 flex-grow">A computational knowledge
+                                            engine. Get answers to complex math problems, data analysis, and more.</p>
+                                        <a href="https://www.wolframalpha.com/" target="_blank"
+                                            class="mt-4 inline-block w-full text-center px-4 py-2 font-semibold text-white bg-orange-500 rounded-lg hover:bg-orange-600">Visit
+                                            Resource</a>
+                                    </div>
+
+                                    <div class="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-lg flex flex-col">
+                                        <img src="https://placehold.co/600x400/dc2626/ffffff?text=edX" alt="edX"
+                                            class="rounded-lg mb-4 w-full h-40 object-cover">
+                                        <h4 class="text-xl font-semibold mb-2">edX</h4>
+                                        <p class="text-gray-600 dark:text-gray-400 flex-grow">Founded by Harvard and
+                                            MIT, edX provides university-level courses in a wide range of disciplines.
+                                        </p>
+                                        <a href="https://www.edx.org/" target="_blank"
+                                            class="mt-4 inline-block w-full text-center px-4 py-2 font-semibold text-white bg-red-600 rounded-lg hover:bg-red-700">Visit
+                                            Resource</a>
+                                    </div>
+
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div id="page-settings" class="content-page p-6">
+                        <div class="max-w-4xl mx-auto">
+                            <h2 class="text-3xl font-bold mb-8">Settings</h2>
+                            
+                            <!-- User Profile Section -->
+                            <div class="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 mb-8">
+                                <div class="flex items-center justify-between mb-6">
+                                    <div>
+                                    <h3 class="text-xl font-semibold">Profile Information</h3>
+                                        <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">Manage your personal information and academic details</p>
+                                    </div>
+                                    <button id="edit-profile-btn" class="text-blue-600 dark:text-blue-400 hover:underline flex items-center">
+                                        <i data-lucide="edit-2" class="w-4 h-4 inline-block mr-1"></i> Edit
+                                    </button>
+                                </div>
+                                
+                                <form id="profile-form" class="space-y-4">
+                                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                        <div>
+                                            <label class="block text-sm font-medium text-gray-500 dark:text-gray-400 mb-2">Full Name *</label>
+                                            <input type="text" id="full-name" class="w-full bg-gray-100 dark:bg-gray-700 border-transparent rounded-lg p-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200" disabled required>
+                                            <div id="name-error" class="text-red-500 text-xs mt-1 hidden"></div>
+                                        </div>
+                                        <div>
+                                            <label class="block text-sm font-medium text-gray-500 dark:text-gray-400 mb-2">Email Address</label>
+                                            <input type="email" id="user-email" class="w-full bg-gray-100 dark:bg-gray-700 border-transparent rounded-lg p-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200" disabled readonly>
+                                            <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Email cannot be changed here</p>
+                                        </div>
+                                        <div>
+                                            <label class="block text-sm font-medium text-gray-500 dark:text-gray-400 mb-2">School/Institution *</label>
+                                            <input type="text" id="user-school" class="w-full bg-gray-100 dark:bg-gray-700 border-transparent rounded-lg p-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200" disabled required>
+                                            <div id="school-error" class="text-red-500 text-xs mt-1 hidden"></div>
+                                        </div>
+                                        <div>
+                                            <label class="block text-sm font-medium text-gray-500 dark:text-gray-400 mb-2">Grade Level *</label>
+                                            <select id="user-grade" class="w-full bg-gray-100 dark:bg-gray-700 border-transparent rounded-lg p-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200" disabled required>
+                                                <option value="">Select Grade</option>
+                                                <option value="9">9th Grade</option>
+                                                <option value="10">10th Grade</option>
+                                                <option value="11">11th Grade</option>
+                                                <option value="12">12th Grade</option>
+                                            </select>
+                                            <div id="grade-error" class="text-red-500 text-xs mt-1 hidden"></div>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- Additional Profile Fields -->
+                                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4 border-t dark:border-gray-700">
+                                        <div>
+                                            <label class="block text-sm font-medium text-gray-500 dark:text-gray-400 mb-2">Student ID</label>
+                                            <input type="text" id="student-id" class="w-full bg-gray-100 dark:bg-gray-700 border-transparent rounded-lg p-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200" disabled placeholder="Optional">
+                                        </div>
+                                        <div>
+                                            <label class="block text-sm font-medium text-gray-500 dark:text-gray-400 mb-2">Phone Number</label>
+                                            <input type="tel" id="phone-number" class="w-full bg-gray-100 dark:bg-gray-700 border-transparent rounded-lg p-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200" disabled placeholder="Optional">
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="flex justify-end space-x-3 pt-4 hidden" id="profile-btns">
+                                        <button type="button" id="cancel-profile-edit" class="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-200 dark:bg-gray-700 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors duration-200">
+                                            Cancel
+                                        </button>
+                                        <button type="submit" class="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors duration-200 flex items-center">
+                                            <i data-lucide="save" class="w-4 h-4 mr-1"></i>
+                                            Save Changes
+                                        </button>
+                                    </div>
+                                </form>
+                            </div>
+
+                            <!-- Theme Settings -->
+                            <div class="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 mb-8">
+                                <div class="flex items-center justify-between mb-6">
+                                    <div>
+                                        <h3 class="text-xl font-semibold">Appearance</h3>
+                                        <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">Customize your visual experience</p>
+                                    </div>
+                                </div>
+                                
+                                <div class="space-y-6">
+                                    <!-- Theme Mode Selection -->
+                                <div class="flex items-center justify-between">
+                                    <div>
+                                            <h4 class="font-medium">Theme Mode</h4>
+                                            <p class="text-sm text-gray-500 dark:text-gray-400">Choose your preferred color scheme</p>
+                                    </div>
+                                        <div class="flex items-center space-x-4">
+                                    <label class="relative inline-flex items-center cursor-pointer">
+                                                <input type="radio" name="theme-mode" value="light" id="theme-light" class="sr-only peer">
+                                        <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
+                                                <span class="ml-2 text-sm">Light</span>
+                                            </label>
+                                            <label class="relative inline-flex items-center cursor-pointer">
+                                                <input type="radio" name="theme-mode" value="dark" id="theme-dark" class="sr-only peer">
+                                                <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
+                                                <span class="ml-2 text-sm">Dark</span>
+                                            </label>
+                                            <label class="relative inline-flex items-center cursor-pointer">
+                                                <input type="radio" name="theme-mode" value="auto" id="theme-auto" class="sr-only peer" checked>
+                                                <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
+                                                <span class="ml-2 text-sm">Auto</span>
+                                    </label>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- Accent Color -->
+                                    <div class="flex items-center justify-between">
+                                        <div>
+                                            <h4 class="font-medium">Accent Color</h4>
+                                            <p class="text-sm text-gray-500 dark:text-gray-400">Choose your preferred accent color</p>
+                                        </div>
+                                        <div class="flex items-center space-x-2">
+                                            <input type="color" id="accent-color" value="#3B82F6" class="w-8 h-8 rounded-full border-2 border-gray-300 dark:border-gray-600 cursor-pointer">
+                                            <span class="text-sm text-gray-600 dark:text-gray-400">Blue</span>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- Font Size -->
+                                    <div class="flex items-center justify-between">
+                                        <div>
+                                            <h4 class="font-medium">Font Size</h4>
+                                            <p class="text-sm text-gray-500 dark:text-gray-400">Adjust text size for better readability</p>
+                                        </div>
+                                        <div class="flex items-center space-x-2">
+                                            <button id="font-decrease" class="p-1 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700">
+                                                <i data-lucide="minus" class="w-4 h-4"></i>
+                                            </button>
+                                            <span id="font-size-display" class="text-sm font-medium w-8 text-center">16px</span>
+                                            <button id="font-increase" class="p-1 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700">
+                                                <i data-lucide="plus" class="w-4 h-4"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- Compact Mode -->
+                                    <div class="flex items-center justify-between">
+                                        <div>
+                                            <h4 class="font-medium">Compact Mode</h4>
+                                            <p class="text-sm text-gray-500 dark:text-gray-400">Reduce spacing for more content</p>
+                                        </div>
+                                        <label class="relative inline-flex items-center cursor-pointer">
+                                            <input type="checkbox" id="compact-mode" class="sr-only peer">
+                                            <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Privacy & Data Settings -->
+                            <div class="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 mb-8">
+                                <div class="flex items-center justify-between mb-6">
+                                    <div>
+                                        <h3 class="text-xl font-semibold">Privacy & Data</h3>
+                                        <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">Control how your data is used and shared</p>
+                                    </div>
+                                </div>
+                                
+                                <div class="space-y-6">
+                                    <!-- Data Collection -->
+                                    <div class="border-b dark:border-gray-700 pb-4">
+                                        <h4 class="font-medium mb-4">Data Collection & Analytics</h4>
+                                <div class="space-y-4">
+                                    <div class="flex items-center justify-between">
+                                        <div>
+                                                    <h5 class="font-medium">Anonymous Usage Data</h5>
+                                                    <p class="text-sm text-gray-500 dark:text-gray-400">Help improve the app by sharing anonymous usage statistics</p>
+                                        </div>
+                                        <label class="relative inline-flex items-center cursor-pointer">
+                                            <input type="checkbox" id="data-collection" class="sr-only peer" checked>
+                                            <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
+                                        </label>
+                                    </div>
+                                    <div class="flex items-center justify-between">
+                                        <div>
+                                                    <h5 class="font-medium">Performance Monitoring</h5>
+                                                    <p class="text-sm text-gray-500 dark:text-gray-400">Allow monitoring of app performance and error reporting</p>
+                                                </div>
+                                                <label class="relative inline-flex items-center cursor-pointer">
+                                                    <input type="checkbox" id="performance-monitoring" class="sr-only peer" checked>
+                                                    <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
+                                                </label>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- Personalization -->
+                                    <div class="border-b dark:border-gray-700 pb-4">
+                                        <h4 class="font-medium mb-4">Personalization</h4>
+                                        <div class="space-y-4">
+                                            <div class="flex items-center justify-between">
+                                                <div>
+                                                    <h5 class="font-medium">Personalized Recommendations</h5>
+                                                    <p class="text-sm text-gray-500 dark:text-gray-400">Use your academic data to provide better study suggestions</p>
+                                        </div>
+                                        <label class="relative inline-flex items-center cursor-pointer">
+                                            <input type="checkbox" id="personalized-recommendations" class="sr-only peer" checked>
+                                            <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
+                                        </label>
+                                    </div>
+                                            <div class="flex items-center justify-between">
+                                                <div>
+                                                    <h5 class="font-medium">Learning Analytics</h5>
+                                                    <p class="text-sm text-gray-500 dark:text-gray-400">Track your learning progress for insights and improvements</p>
+                                                </div>
+                                                <label class="relative inline-flex items-center cursor-pointer">
+                                                    <input type="checkbox" id="learning-analytics" class="sr-only peer" checked>
+                                                    <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
+                                                </label>
+                                            </div>
+                                </div>
+                            </div>
+
+                                    <!-- Data Sharing -->
+                                    <div class="border-b dark:border-gray-700 pb-4">
+                                        <h4 class="font-medium mb-4">Data Sharing</h4>
+                                <div class="space-y-4">
+                                            <div class="flex items-center justify-between">
+                                                <div>
+                                                    <h5 class="font-medium">Share with Teachers</h5>
+                                                    <p class="text-sm text-gray-500 dark:text-gray-400">Allow your teachers to view your progress and performance</p>
+                                                </div>
+                                                <label class="relative inline-flex items-center cursor-pointer">
+                                                    <input type="checkbox" id="share-with-teachers" class="sr-only peer" checked>
+                                                    <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
+                                                </label>
+                                            </div>
+                                            <div class="flex items-center justify-between">
+                                                <div>
+                                                    <h5 class="font-medium">Public Profile</h5>
+                                                    <p class="text-sm text-gray-500 dark:text-gray-400">Make your profile visible to other students (anonymized)</p>
+                                                </div>
+                                                <label class="relative inline-flex items-center cursor-pointer">
+                                                    <input type="checkbox" id="public-profile" class="sr-only peer">
+                                                    <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
+                                                </label>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- Data Management -->
+                                    <div>
+                                        <h4 class="font-medium mb-4">Data Management</h4>
+                                        <div class="space-y-3">
+                                            <button id="export-data-btn" class="w-full text-left p-3 rounded-lg border dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors duration-200">
+                                                <div class="flex items-center justify-between">
+                                                    <div>
+                                                        <h5 class="font-medium">Export My Data</h5>
+                                                        <p class="text-sm text-gray-500 dark:text-gray-400">Download a copy of all your data</p>
+                                                    </div>
+                                                    <i data-lucide="download" class="w-5 h-5 text-gray-400"></i>
+                                                </div>
+                                            </button>
+                                            <button id="clear-data-btn" class="w-full text-left p-3 rounded-lg border dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors duration-200">
+                                                <div class="flex items-center justify-between">
+                                                    <div>
+                                                        <h5 class="font-medium">Clear Learning Data</h5>
+                                                        <p class="text-sm text-gray-500 dark:text-gray-400">Reset your learning progress and predictions</p>
+                                                    </div>
+                                                    <i data-lucide="trash-2" class="w-5 h-5 text-gray-400"></i>
+                                                </div>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Account Management -->
+                            <div class="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 mb-8">
+                                <div class="flex items-center justify-between mb-6">
+                                    <div>
+                                        <h3 class="text-xl font-semibold">Account Management</h3>
+                                        <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">Manage your account security and preferences</p>
+                                    </div>
+                                </div>
+                                
+                                <div class="space-y-6">
+                                    <!-- Security Settings -->
+                                    <div class="border-b dark:border-gray-700 pb-4">
+                                        <h4 class="font-medium mb-4">Security</h4>
+                                        <div class="space-y-3">
+                                            <button id="change-password-btn" class="w-full text-left p-3 rounded-lg border dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors duration-200">
+                                                <div class="flex items-center justify-between">
+                                                    <div>
+                                                        <h5 class="font-medium">Change Password</h5>
+                                                        <p class="text-sm text-gray-500 dark:text-gray-400">Update your account password</p>
+                                                    </div>
+                                                    <i data-lucide="key" class="w-5 h-5 text-gray-400"></i>
+                                                </div>
+                                        </button>
+                                            <button id="two-factor-btn" class="w-full text-left p-3 rounded-lg border dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors duration-200">
+                                                <div class="flex items-center justify-between">
+                                                    <div>
+                                                        <h5 class="font-medium">Two-Factor Authentication</h5>
+                                                        <p class="text-sm text-gray-500 dark:text-gray-400">Add extra security to your account</p>
+                                    </div>
+                                                    <div class="flex items-center space-x-2">
+                                                        <span class="text-xs text-gray-500 dark:text-gray-400">Not enabled</span>
+                                                        <i data-lucide="shield" class="w-5 h-5 text-gray-400"></i>
+                                                    </div>
+                                                </div>
+                                        </button>
+                                    </div>
+                                </div>
+                                    
+                                    <!-- Notification Settings -->
+                                    <div class="border-b dark:border-gray-700 pb-4">
+                                        <h4 class="font-medium mb-4">Notifications</h4>
+                                        <div class="space-y-4">
+                                            <div class="flex items-center justify-between">
+                                                <div>
+                                                    <h5 class="font-medium">Email Notifications</h5>
+                                                    <p class="text-sm text-gray-500 dark:text-gray-400">Receive updates via email</p>
+                                                </div>
+                                                <label class="relative inline-flex items-center cursor-pointer">
+                                                    <input type="checkbox" id="email-notifications" class="sr-only peer" checked>
+                                                    <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
+                                                </label>
+                                            </div>
+                                            <div class="flex items-center justify-between">
+                                                <div>
+                                                    <h5 class="font-medium">Study Reminders</h5>
+                                                    <p class="text-sm text-gray-500 dark:text-gray-400">Get reminded about study sessions</p>
+                                                </div>
+                                                <label class="relative inline-flex items-center cursor-pointer">
+                                                    <input type="checkbox" id="study-reminders" class="sr-only peer" checked>
+                                                    <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
+                                                </label>
+                                            </div>
+                                            <div class="flex items-center justify-between">
+                                                <div>
+                                                    <h5 class="font-medium">Progress Updates</h5>
+                                                    <p class="text-sm text-gray-500 dark:text-gray-400">Notifications about your academic progress</p>
+                                                </div>
+                                                <label class="relative inline-flex items-center cursor-pointer">
+                                                    <input type="checkbox" id="progress-updates" class="sr-only peer" checked>
+                                                    <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
+                                                </label>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- Account Actions -->
+                                    <div>
+                                        <h4 class="font-medium mb-4">Account Actions</h4>
+                                        <div class="space-y-3">
+                                            <button id="download-data-btn" class="w-full text-left p-3 rounded-lg border dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors duration-200">
+                                                <div class="flex items-center justify-between">
+                                                    <div>
+                                                        <h5 class="font-medium">Download Account Data</h5>
+                                                        <p class="text-sm text-gray-500 dark:text-gray-400">Get a copy of all your account information</p>
+                                                    </div>
+                                                    <i data-lucide="download" class="w-5 h-5 text-gray-400"></i>
+                                                </div>
+                                            </button>
+                                            <button id="deactivate-account-btn" class="w-full text-left p-3 rounded-lg border dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors duration-200">
+                                                <div class="flex items-center justify-between">
+                                                    <div>
+                                                        <h5 class="font-medium">Deactivate Account</h5>
+                                                        <p class="text-sm text-gray-500 dark:text-gray-400">Temporarily disable your account</p>
+                                                    </div>
+                                                    <i data-lucide="pause" class="w-5 h-5 text-gray-400"></i>
+                                                </div>
+                                            </button>
+                                            <button id="delete-account-btn" class="w-full text-left p-3 rounded-lg border border-red-200 dark:border-red-800 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors duration-200">
+                                                <div class="flex items-center justify-between">
+                                                    <div>
+                                                        <h5 class="font-medium text-red-600 dark:text-red-400">Delete Account</h5>
+                                                        <p class="text-sm text-red-500 dark:text-red-400">Permanently delete your account and all data</p>
+                                                    </div>
+                                                    <i data-lucide="trash-2" class="w-5 h-5 text-red-400"></i>
+                                                </div>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Change Password Modal -->
+                        <div id="change-password-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                            <div class="bg-white dark:bg-gray-800 rounded-xl p-6 max-w-md w-full mx-4">
+                                <div class="flex justify-between items-center mb-4">
+                                    <h3 class="text-xl font-semibold">Change Password</h3>
+                                    <button id="close-password-modal" class="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">
+                                        <i data-lucide="x" class="w-5 h-5"></i>
+                                    </button>
+                                </div>
+                                <form id="change-password-form" class="space-y-4">
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-500 dark:text-gray-400 mb-2">Current Password</label>
+                                        <input type="password" id="current-password" class="w-full bg-gray-100 dark:bg-gray-700 border-transparent rounded-lg p-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent" required>
+                                    </div>
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-500 dark:text-gray-400 mb-2">New Password</label>
+                                        <input type="password" id="new-password" class="w-full bg-gray-100 dark:bg-gray-700 border-transparent rounded-lg p-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent" required>
+                                    </div>
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-500 dark:text-gray-400 mb-2">Confirm New Password</label>
+                                        <input type="password" id="confirm-password" class="w-full bg-gray-100 dark:bg-gray-700 border-transparent rounded-lg p-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent" required>
+                                    </div>
+                                    <div class="flex justify-end space-x-3 pt-2">
+                                        <button type="button" id="cancel-password-change" class="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-200 dark:bg-gray-700 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600">
+                                            Cancel
+                                        </button>
+                                        <button type="submit" class="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700">
+                                            Update Password
+                                        </button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+
+                        <!-- Deactivate Account Modal -->
+                        <div id="deactivate-account-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                            <div class="bg-white dark:bg-gray-800 rounded-xl p-6 max-w-md w-full mx-4">
+                                <div class="text-center">
+                                    <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-yellow-100 dark:bg-yellow-900/30 mb-4">
+                                        <i data-lucide="pause" class="h-6 w-6 text-yellow-600 dark:text-yellow-400"></i>
+                                    </div>
+                                    <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-2">Deactivate Account</h3>
+                                    <p class="text-sm text-gray-500 dark:text-gray-400 mb-6">
+                                        Your account will be temporarily disabled. You can reactivate it anytime by logging in again.
+                                    </p>
+                                    <div class="flex justify-center space-x-3">
+                                        <button type="button" id="cancel-deactivate-account" class="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-200 dark:bg-gray-700 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600">
+                                            Cancel
+                                        </button>
+                                        <button type="button" id="confirm-deactivate-account" class="px-4 py-2 text-sm font-medium text-white bg-yellow-600 rounded-lg hover:bg-yellow-700">
+                                            Deactivate Account
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Two-Factor Authentication Modal -->
+                        <div id="two-factor-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                            <div class="bg-white dark:bg-gray-800 rounded-xl p-6 max-w-md w-full mx-4">
+                                <div class="flex justify-between items-center mb-4">
+                                    <h3 class="text-xl font-semibold">Two-Factor Authentication</h3>
+                                    <button id="close-two-factor-modal" class="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">
+                                        <i data-lucide="x" class="w-5 h-5"></i>
+                                    </button>
+                                </div>
+                                <div class="space-y-4">
+                                    <div class="text-center">
+                                        <div class="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-blue-100 dark:bg-blue-900/30 mb-4">
+                                            <i data-lucide="shield" class="h-8 w-8 text-blue-600 dark:text-blue-400"></i>
+                                        </div>
+                                        <h4 class="font-medium mb-2">Enable Two-Factor Authentication</h4>
+                                        <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">
+                                            Add an extra layer of security to your account using an authenticator app.
+                                        </p>
+                                    </div>
+                                    <div class="space-y-3">
+                                        <button id="setup-2fa-btn" class="w-full px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700">
+                                            Setup 2FA with Authenticator App
+                                        </button>
+                                        <button id="cancel-2fa-setup" class="w-full px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-200 dark:bg-gray-700 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600">
+                                            Cancel
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Delete Account Confirmation Modal -->
+                        <div id="delete-account-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                            <div class="bg-white dark:bg-gray-800 rounded-xl p-6 max-w-md w-full mx-4">
+                                <div class="text-center">
+                                    <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100 dark:bg-red-900/30 mb-4">
+                                        <i data-lucide="alert-triangle" class="h-6 w-6 text-red-600 dark:text-red-400"></i>
+                                    </div>
+                                    <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-2">Delete Account</h3>
+                                    <p class="text-sm text-gray-500 dark:text-gray-400 mb-6">
+                                        Are you sure you want to delete your account? This action cannot be undone and all your data will be permanently removed.
+                                    </p>
+                                    <div class="flex justify-center space-x-3">
+                                        <button type="button" id="cancel-delete-account" class="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-200 dark:bg-gray-700 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600">
+                                            Cancel
+                                        </button>
+                                        <button type="button" id="confirm-delete-account" class="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700">
+                                            Delete Account
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div id="page-recommendations" class="content-page">Recommendations Page Content</div>
+                    <div id="page-categories" class="content-page">Categories Page Content</div>
+                    <div id="page-export-reports" class="content-page">Export Reports Page Content (Teacher Only)</div>
+
+                </main>
+            </div>
+        </div>
+
+        <div id="chatbot-container" class="fixed bottom-6 right-6 z-50">
+            <button id="chatbot-toggle"
+                class="bg-blue-600 text-white w-16 h-16 rounded-full shadow-lg flex items-center justify-center hover:bg-blue-700 transition-transform transform hover:scale-110">
+                <i data-lucide="message-circle" class="w-8 h-8"></i>
+            </button>
+            <div id="chatbot-window"
+                class="hidden absolute bottom-20 right-0 w-80 h-96 bg-white dark:bg-gray-800 rounded-2xl shadow-2xl flex flex-col transition-all duration-300 origin-bottom-right">
+                <div class="flex items-center justify-between p-4 bg-blue-600 text-white rounded-t-2xl">
+                    <h3 class="font-semibold">AI Assistant</h3>
+                    <button id="chatbot-close" class="p-1 rounded-full hover:bg-blue-700">
+                        <i data-lucide="x" class="w-5 h-5"></i>
+                    </button>
+                </div>
+                <div class="flex-1 p-4 overflow-y-auto space-y-4">
+                    <div class="flex">
+                        <div class="bg-gray-200 dark:bg-gray-700 p-3 rounded-lg max-w-xs">
+                            <p>Hello! How can I help you today? You can ask about study help, predictions, or FAQs.</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="p-4 border-t dark:border-gray-700">
+                    <div class="relative">
+                        <input type="text" placeholder="Type a message..."
+                            class="w-full bg-gray-100 dark:bg-gray-700 border-transparent rounded-full py-2 pl-4 pr-12 focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                        <button
+                            class="absolute right-2 top-1/2 -translate-y-1/2 p-2 bg-blue-600 text-white rounded-full">
+                            <i data-lucide="send" class="w-4 h-4"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // --- ELEMENTS --- //
+            const loginPage = document.getElementById('login-page');
+            const loginForm = document.getElementById('login-form');
+            const dashboardMain = document.getElementById('dashboard-main');
+            const logoutButton = document.getElementById('logout-button');
+            const sidebar = document.getElementById('sidebar');
+            const sidebarToggle = document.getElementById('sidebar-toggle');
+            const pageTitle = document.getElementById('page-title');
+            const contentPages = document.querySelectorAll('.content-page');
+            const navContainer = document.querySelector('nav');
+
+            // Auth elements
+            const emailInput = document.getElementById('email-input');
+            const passwordInput = document.getElementById('password-input');
+            const loginButton = document.getElementById('login-button');
+            const loginText = document.getElementById('login-text');
+            const loginLoading = document.getElementById('login-loading');
+            const authError = document.getElementById('auth-error');
+            const signupLink = document.getElementById('signup-link');
+            const forgotPassword = document.getElementById('forgot-password');
+
+            // Signup elements
+            const signupPage = document.getElementById('signup-page');
+            const signupForm = document.getElementById('signup-form');
+            const signupFirstnameInput = document.getElementById('signup-firstname-input');
+            const signupEmailInput = document.getElementById('signup-email-input');
+            const signupPasswordInput = document.getElementById('signup-password-input');
+            const signupConfirmPasswordInput = document.getElementById('signup-confirm-password-input');
+            const signupButton = document.getElementById('signup-button');
+            const signupText = document.getElementById('signup-text');
+            const signupLoading = document.getElementById('signup-loading');
+            const signupError = document.getElementById('signup-error');
+            const loginLink = document.getElementById('login-link');
+
+            // Google Sign-In elements
+            const googleSigninBtn = document.getElementById('google-signin-btn');
+            const googleText = document.getElementById('google-text');
+            const googleLoading = document.getElementById('google-loading');
+            
+            // Debug Google Sign-In button
+            console.log('Google Sign-In button found:', !!googleSigninBtn);
+            if (googleSigninBtn) {
+                console.log('Google Sign-In button element:', googleSigninBtn);
+            }
+
+            // Prediction elements
+            const runPredictionBtn = document.getElementById('run-prediction-btn');
+            const predictionText = document.getElementById('prediction-text');
+            const predictionLoading = document.getElementById('prediction-loading');
+            const fillSampleDataBtn = document.getElementById('fill-sample-data-btn');
+
+            // Chatbot elements
+            const chatbotToggle = document.getElementById('chatbot-toggle');
+            const chatbotWindow = document.getElementById('chatbot-window');
+            const chatbotClose = document.getElementById('chatbot-close');
+
+            // Dashboard navigation buttons
+            const goToPredictionsBtn = document.getElementById('go-to-predictions');
+            const goToStudyMaterialsBtn = document.getElementById('go-to-study-materials');
+
+            // --- STATE --- //
+            let activePage = 'dashboard';
+            let currentUserRole = 'student';
+            let currentUser = null;
+
+            // --- NAVIGATION DATA --- //
+            const navLinks = {
+                student: [
+                    { id: 'dashboard', icon: 'home', label: 'Dashboard' },
+                    { id: 'predictions', icon: 'bar-chart-2', label: 'Predictions' },
+                    { id: 'study-materials', icon: 'book-open', label: 'Study Materials' },
+                    { id: 'recommendations', icon: 'brain-circuit', label: 'Recommendations' },
+                    { id: 'settings', icon: 'settings', label: 'Settings' },
+                ]
+            };
+
+            // --- FIREBASE FUNCTIONS --- //
+
+            const showLoading = (button, textElement, loadingElement) => {
+                textElement.classList.add('hidden');
+                loadingElement.classList.remove('hidden');
+                button.disabled = true;
+            };
+
+            const hideLoading = (button, textElement, loadingElement) => {
+                textElement.classList.remove('hidden');
+                loadingElement.classList.add('hidden');
+                button.disabled = false;
+            };
+
+            const showError = (message) => {
+                authError.textContent = message;
+                authError.classList.remove('hidden');
+                setTimeout(() => {
+                    authError.classList.add('hidden');
+                }, 5000);
+            };
+
+            const showSignupError = (message) => {
+                signupError.textContent = message;
+                signupError.classList.remove('hidden');
+                setTimeout(() => {
+                    signupError.classList.add('hidden');
+                }, 5000);
+            };
+
+            const switchToSignup = () => {
+                clearLoginForm(); // Clear login form when switching to signup
+                loginPage.classList.add('hidden');
+                signupPage.classList.remove('hidden');
+            };
+
+            const switchToLogin = () => {
+                clearSignupForm(); // Clear signup form when switching to login
+                signupPage.classList.add('hidden');
+                loginPage.classList.remove('hidden');
+            };
+
+            const clearLoginForm = () => {
+                emailInput.value = '';
+                passwordInput.value = '';
+                authError.classList.add('hidden');
+            };
+
+            const clearSignupForm = () => {
+                signupFirstnameInput.value = '';
+                signupEmailInput.value = '';
+                signupPasswordInput.value = '';
+                signupConfirmPasswordInput.value = '';
+                signupError.classList.add('hidden');
+            };
+
+            const signInWithEmail = async (email, password) => {
+                try {
+                    const userCredential = await window.firebaseAuthFunctions.signInWithEmailAndPassword(window.firebaseAuth, email, password);
+                    currentUser = userCredential.user;
+                    return userCredential;
+                } catch (error) {
+                    throw error;
+                }
+            };
+
+            const createUserWithEmail = async (email, password, firstName) => {
+                try {
+                    const userCredential = await window.firebaseAuthFunctions.createUserWithEmailAndPassword(window.firebaseAuth, email, password);
+                    currentUser = userCredential.user;
+
+                    // Update the Firebase Auth user's displayName
+                    console.log('Updating Firebase Auth user profile with displayName:', firstName);
+                    await window.firebaseAuthFunctions.updateProfile(userCredential.user, {
+                        displayName: firstName
+                    });
+                    console.log('Firebase Auth user profile updated successfully');
+
+                    // Create user profile in Firestore
+                    const usersRef = window.firebaseDbFunctions.collection(window.firebaseDb, 'users');
+                    await window.firebaseDbFunctions.addDoc(usersRef, {
+                        uid: userCredential.user.uid,
+                        email: email,
+                        displayName: firstName,
+                        role: 'student',
+                        createdAt: window.firebaseDbFunctions.serverTimestamp(),
+                        profile: {
+                            name: firstName,
+                            grade: '',
+                            school: ''
+                        }
+                    });
+
+                    return userCredential;
+                } catch (error) {
+                    throw error;
+                }
+            };
+
+            const savePredictionToFirestore = async (predictionData) => {
+                try {
+                    const predictionsRef = window.firebaseDbFunctions.collection(window.firebaseDb, 'predictions');
+                    const predictionRef = await window.firebaseDbFunctions.addDoc(predictionsRef, {
+                        userId: currentUser.uid,
+                        userEmail: currentUser.email,
+                        predictionData: predictionData,
+                        predictedScore: 78, // This would come from your ML model
+                        riskLevel: 'Medium Risk',
+                        timestamp: window.firebaseDbFunctions.serverTimestamp()
+                    });
+                    return predictionRef;
+                } catch (error) {
+                    console.error('Error saving prediction:', error);
+                    throw error;
+                }
+            };
+
+            const getUserPredictions = async () => {
+                try {
+                    const predictionsRef = window.firebaseDbFunctions.collection(window.firebaseDb, 'predictions');
+                    const q = window.firebaseDbFunctions.query(
+                        predictionsRef,
+                        window.firebaseDbFunctions.where('userId', '==', currentUser.uid),
+                        window.firebaseDbFunctions.orderBy('timestamp', 'desc'),
+                        window.firebaseDbFunctions.limit(10)
+                    );
+                    const snapshot = await window.firebaseDbFunctions.getDocs(q);
+
+                    return snapshot.docs.map(doc => ({
+                        id: doc.id,
+                        ...doc.data()
+                    }));
+                } catch (error) {
+                    console.error('Error getting predictions:', error);
+                    throw error;
+                }
+            };
+
+            const signInWithGoogle = async () => {
+                try {
+                    console.log('Starting Google Sign-In process...');
+
+                    // Check if Firebase is properly initialized
+                    if (!window.firebaseAuth) {
+                        throw new Error('Firebase Auth not initialized');
+                    }
+
+                    // Create Google Auth Provider
+                    const provider = new window.firebaseAuthFunctions.GoogleAuthProvider();
+                    console.log('Google provider created');
+
+                    // Add custom parameters for better UX
+                    provider.setCustomParameters({
+                        prompt: 'select_account'
+                    });
+
+                    // Add scopes
+                    provider.addScope('email');
+                    provider.addScope('profile');
+
+                    console.log('Attempting to sign in with popup...');
+                    
+                    // Try popup first, fallback to redirect if needed
+                    let userCredential;
+                    try {
+                        userCredential = await window.firebaseAuthFunctions.signInWithPopup(window.firebaseAuth, provider);
+                        console.log('Google Sign-In successful with popup:', userCredential.user.email);
+                    } catch (popupError) {
+                        console.log('Popup failed, trying redirect:', popupError.code);
+                        if (popupError.code === 'auth/popup-blocked' || popupError.code === 'auth/popup-closed-by-user') {
+                            // Fallback to redirect
+                            await window.firebaseAuthFunctions.signInWithRedirect(window.firebaseAuth, provider);
+                            return; // Redirect will handle the rest
+                        } else {
+                            throw popupError;
+                        }
+                    }
+
+                    currentUser = userCredential.user;
+
+                    // Check if user profile exists in Firestore
+                    console.log('Checking if user profile exists in Firestore...');
+                    const usersRef = window.firebaseDbFunctions.collection(window.firebaseDb, 'users');
+                    const userQuery = window.firebaseDbFunctions.query(
+                        usersRef,
+                        window.firebaseDbFunctions.where('uid', '==', userCredential.user.uid)
+                    );
+                    const userSnapshot = await window.firebaseDbFunctions.getDocs(userQuery);
+
+                    // If user doesn't exist in Firestore, create profile
+                    if (userSnapshot.empty) {
+                        console.log('Creating new user profile in Firestore...');
+                        
+                        // Extract first name from display name
+                        const fullName = userCredential.user.displayName || 'Google User';
+                        const firstName = fullName.split(' ')[0]; // Get the first part of the name
+                        
+                        // Update the Firebase Auth user's displayName to first name only
+                        console.log('Updating Firebase Auth user profile with displayName:', firstName);
+                        await window.firebaseAuthFunctions.updateProfile(userCredential.user, {
+                            displayName: firstName
+                        });
+                        console.log('Firebase Auth user profile updated successfully');
+                        
+                        await window.firebaseDbFunctions.addDoc(usersRef, {
+                            uid: userCredential.user.uid,
+                            email: userCredential.user.email,
+                            displayName: firstName, // Store first name as display name
+                            photoURL: userCredential.user.photoURL,
+                            role: 'student',
+                            createdAt: window.firebaseDbFunctions.serverTimestamp(),
+                            profile: {
+                                name: firstName,
+                                grade: '',
+                                school: '',
+                                photoURL: userCredential.user.photoURL
+                            }
+                        });
+                        console.log('Google user profile created in Firestore with first name:', firstName);
+                    } else {
+                        console.log('User profile already exists in Firestore');
+                    }
+
+                    return userCredential;
+                } catch (error) {
+                    console.error('Google Sign-In error details:', {
+                        code: error.code,
+                        message: error.message,
+                        email: error.email,
+                        credential: error.credential
+                    });
+                    throw error;
+                }
+            };
+
+            // --- FUNCTIONS --- //
+
+            const renderSidebar = (role) => {
+                const links = navLinks[role];
+                navContainer.innerHTML = ''; // Clear existing links
+                links.forEach(link => {
+                    const linkEl = document.createElement('a');
+                    linkEl.href = '#';
+                    linkEl.dataset.page = `page-${link.id}`;
+                    linkEl.classList.add('sidebar-link', 'flex', 'items-center', 'w-full', 'px-4', 'py-3', 'text-gray-600', 'dark:text-gray-400', 'rounded-lg', 'hover:bg-gray-100', 'dark:hover:bg-gray-700', 'hover:text-gray-900', 'dark:hover:text-white', 'transition-colors');
+                    if (`page-${link.id}` === `page-${activePage}`) {
+                        linkEl.classList.add('active');
+                    }
+                    linkEl.innerHTML = `
+                <i data-lucide="${link.icon}" class="w-5 h-5 mr-3"></i>
+                <span>${link.label}</span>
+            `;
+                    navContainer.appendChild(linkEl);
+                });
+                lucide.createIcons(); // Re-render icons
+            };
+
+            const navigateToPage = (pageId) => {
+                activePage = pageId.replace('page-', '');
+                
+                // Hide all content pages
+                contentPages.forEach(p => p.classList.remove('active'));
+
+                // Show the selected page
+                const selectedPage = document.getElementById(pageId);
+                if (selectedPage) {
+                    selectedPage.classList.add('active');
+                }
+                    
+                // Initialize specific pages when navigated to
+                    if (pageId === 'page-settings') {
+                        initSettingsPage();
+                } else if (pageId === 'page-dashboard') {
+                    initDashboard();
+                } else if (pageId === 'page-predictions') {
+                    initPredictionsPage();
+                } else if (pageId === 'page-study-materials') {
+                    initStudyMaterialsPage();
+                }
+                
+                // Update sidebar active state
+                document.querySelectorAll('.sidebar-link').forEach(l => l.classList.remove('active'));
+                const activeLink = document.querySelector(`.sidebar-link[data-page="${pageId}"]`);
+                if (activeLink) {
+                    activeLink.classList.add('active');
+                    pageTitle.textContent = activeLink.querySelector('span').textContent;
+                }
+                
+                // Refresh icons after navigation
+                lucide.createIcons();
+            };
+
+            // --- CHARTING --- //
+            let performanceChart, categoryChart;
+
+
+
+
+
+
+            // --- EVENT LISTENERS --- //
+
+            // Auth state listener
+            window.firebaseAuthFunctions.onAuthStateChanged(window.firebaseAuth, (user) => {
+                if (user) {
+                    currentUser = user;
+                    loginPage.classList.add('hidden');
+                    dashboardMain.classList.remove('hidden');
+
+                    // Update user display
+                    const userAvatar = document.getElementById('user-avatar');
+                    const userName = document.getElementById('user-name');
+
+                    console.log('Auth state changed - User details:', {
+                        email: user.email,
+                        displayName: user.displayName,
+                        photoURL: user.photoURL,
+                        uid: user.uid
+                    });
+                    
+                    // Additional debugging for displayName
+                    console.log('DisplayName type:', typeof user.displayName);
+                    console.log('DisplayName length:', user.displayName ? user.displayName.length : 0);
+                    console.log('DisplayName trimmed:', user.displayName ? user.displayName.trim() : 'null');
+
+                    if (user.photoURL) {
+                        userAvatar.src = user.photoURL;
+                    } else {
+                        // Use first name initial if available, otherwise email initial
+                        const initial = user.displayName ? user.displayName.charAt(0).toUpperCase() : 
+                                      (user.email ? user.email.charAt(0).toUpperCase() : 'U');
+                        userAvatar.src = `https://placehold.co/40x40/7c3aed/ffffff?text=${initial}`;
+                    }
+
+                    if (user.displayName) {
+                        userName.textContent = user.displayName;
+                        console.log('Setting user name to:', user.displayName);
+                    } else {
+                        userName.textContent = user.email || 'User';
+                        console.log('Setting user name to email:', user.email || 'User');
+                    }
+
+                    // Initial setup
+                    renderSidebar(currentUserRole);
+                    navigateToPage('page-dashboard');
+                    lucide.createIcons();
+
+                    console.log('User signed in:', user.email);
+                } else {
+                    currentUser = null;
+                    dashboardMain.classList.add('hidden');
+                    loginPage.classList.remove('hidden');
+                    clearLoginForm(); // Clear the login form when user logs out
+                    console.log('User signed out');
+                }
+            });
+
+            loginForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const email = emailInput.value.trim();
+                const password = passwordInput.value.trim();
+
+                if (!email || !password) {
+                    showError('Please enter both email and password');
+                    return;
+                }
+
+                showLoading(loginButton, loginText, loginLoading);
+
+                try {
+                    await signInWithEmail(email, password);
+                    // Auth state listener will handle the UI transition
+                } catch (error) {
+                    hideLoading(loginButton, loginText, loginLoading);
+                    console.error('Login error:', error);
+
+                    let errorMessage = 'Login failed. Please try again.';
+                    switch (error.code) {
+                        case 'auth/user-not-found':
+                            errorMessage = 'No account found with this email.';
+                            break;
+                        case 'auth/wrong-password':
+                            errorMessage = 'Incorrect password.';
+                            break;
+                        case 'auth/invalid-email':
+                            errorMessage = 'Invalid email address.';
+                            break;
+                        case 'auth/too-many-requests':
+                            errorMessage = 'Too many failed attempts. Please try again later.';
+                            break;
+                    }
+                    showError(errorMessage);
+                }
+            });
+
+            logoutButton.addEventListener('click', async (e) => {
+                e.preventDefault();
+                try {
+                    await window.firebaseAuthFunctions.signOut(window.firebaseAuth);
+                    // Auth state listener will handle the UI transition
+                } catch (error) {
+                    console.error('Logout error:', error);
+                }
+            });
+
+            // Test display name button (guard if element not present)
+            const testDisplayNameBtn = document.getElementById('test-displayname-btn');
+            if (testDisplayNameBtn) {
+                testDisplayNameBtn.addEventListener('click', () => {
+                    const currentUser = window.firebaseAuth.currentUser;
+                    if (currentUser) {
+                        console.log('=== TEST DISPLAY NAME ===');
+                        console.log('Current user:', currentUser);
+                        console.log('Display name:', currentUser.displayName);
+                        console.log('Email:', currentUser.email);
+                        console.log('UID:', currentUser.uid);
+                        console.log('Photo URL:', currentUser.photoURL);
+                        alert(`Display Name: "${currentUser.displayName}"\nEmail: "${currentUser.email}"`);
+                    } else {
+                        console.log('No user is currently signed in');
+                        alert('No user is currently signed in');
+                    }
+                });
+            } else {
+                console.warn('Element with id "test-displayname-btn" not found; skipping display name test binding.');
+            }
+
+            // Navigation between login and signup
+            signupLink.addEventListener('click', (e) => {
+                e.preventDefault();
+                switchToSignup();
+            });
+
+            loginLink.addEventListener('click', (e) => {
+                e.preventDefault();
+                switchToLogin();
+            });
+
+            // Signup form submission
+            signupForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const firstName = signupFirstnameInput.value.trim();
+                const email = signupEmailInput.value.trim();
+                const password = signupPasswordInput.value.trim();
+                const confirmPassword = signupConfirmPasswordInput.value.trim();
+
+                if (!firstName || !email || !password || !confirmPassword) {
+                    showSignupError('Please fill in all fields');
+                    return;
+                }
+
+                if (password.length < 6) {
+                    showSignupError('Password must be at least 6 characters long');
+                    return;
+                }
+
+                if (password !== confirmPassword) {
+                    showSignupError('Passwords do not match');
+                    return;
+                }
+
+                showLoading(signupButton, signupText, signupLoading);
+
+                try {
+                    await createUserWithEmail(email, password, firstName);
+                    // Auth state listener will handle the UI transition
+                    showSignupError('Account created successfully! Redirecting...');
+                } catch (error) {
+                    hideLoading(signupButton, signupText, signupLoading);
+                    console.error('Signup error:', error);
+
+                    let errorMessage = 'Signup failed. Please try again.';
+                    switch (error.code) {
+                        case 'auth/email-already-in-use':
+                            errorMessage = 'An account with this email already exists.';
+                            break;
+                        case 'auth/invalid-email':
+                            errorMessage = 'Invalid email address.';
+                            break;
+                        case 'auth/weak-password':
+                            errorMessage = 'Password is too weak.';
+                            break;
+                    }
+                    showSignupError(errorMessage);
+                }
+            });
+
+            // Forgot password functionality
+            forgotPassword.addEventListener('click', async (e) => {
+                e.preventDefault();
+                const email = emailInput.value.trim();
+
+                if (!email) {
+                    showError('Please enter your email address');
+                    return;
+                }
+
+                try {
+                    await window.firebaseAuthFunctions.sendPasswordResetEmail(window.firebaseAuth, email);
+                    showError('Password reset email sent! Check your inbox.');
+                } catch (error) {
+                    console.error('Password reset error:', error);
+                    showError('Failed to send reset email. Please try again.');
+                }
+            });
+
+            // Google Sign-In functionality
+            googleSigninBtn.addEventListener('click', async (e) => {
+                e.preventDefault();
+                console.log('Google Sign-In button clicked');
+
+                showLoading(googleSigninBtn, googleText, googleLoading);
+
+                try {
+                    console.log('Calling signInWithGoogle function...');
+                    await signInWithGoogle();
+                    console.log('signInWithGoogle completed successfully');
+                    // Auth state listener will handle the UI transition
+                } catch (error) {
+                    hideLoading(googleSigninBtn, googleText, googleLoading);
+                    console.error('Google Sign-In error:', error);
+
+                    let errorMessage = 'Google Sign-In failed. Please try again.';
+                    switch (error.code) {
+                        case 'auth/popup-closed-by-user':
+                            errorMessage = 'Sign-In was cancelled.';
+                            break;
+                        case 'auth/popup-blocked':
+                            errorMessage = 'Pop-up was blocked. Please allow pop-ups for this site.';
+                            break;
+                        case 'auth/account-exists-with-different-credential':
+                            errorMessage = 'An account already exists with this email using a different sign-in method.';
+                            break;
+                        case 'auth/network-request-failed':
+                            errorMessage = 'Network error. Please check your connection.';
+                            break;
+                        case 'auth/unauthorized-domain':
+                            errorMessage = 'This domain is not authorized for Firebase Authentication. Please add "localhost" to your Firebase project\'s authorized domains. Go to Firebase Console > Authentication > Settings > Authorized domains and add "localhost".';
+                            break;
+                        case 'auth/operation-not-allowed':
+                            errorMessage = 'Google Sign-In is not enabled. Please contact support.';
+                            break;
+                        case 'auth/invalid-api-key':
+                            errorMessage = 'Authentication configuration error. Please contact support.';
+                            break;
+                        case 'auth/web-storage-unsupported':
+                            errorMessage = 'Your browser does not support web storage. Please try a different browser.';
+                            break;
+                        case 'auth/cancelled-popup-request':
+                            errorMessage = 'Sign-In was cancelled. Please try again.';
+                            break;
+                        case 'auth/popup-closed-by-user':
+                            errorMessage = 'Sign-In popup was closed. Please try again.';
+                            break;
+                        case 'auth/user-disabled':
+                            errorMessage = 'This account has been disabled. Please contact support.';
+                            break;
+                        case 'auth/user-token-expired':
+                            errorMessage = 'Your session has expired. Please sign in again.';
+                            break;
+                        case 'auth/too-many-requests':
+                            errorMessage = 'Too many sign-in attempts. Please try again later.';
+                            break;
+                        default:
+                            errorMessage = `Google Sign-In failed: ${error.message}`;
+                            break;
+                    }
+                    showError(errorMessage);
+                }
+            });
+
+            sidebarToggle.addEventListener('click', () => {
+                sidebar.classList.toggle('w-64');
+                sidebar.classList.toggle('w-20');
+                sidebar.querySelectorAll('span').forEach(span => span.classList.toggle('hidden'));
+            });
+
+            navContainer.addEventListener('click', (e) => {
+                const link = e.target.closest('.sidebar-link');
+                if (link && link.dataset.page) {
+                    navigateToPage(link.dataset.page);
+                }
+            });
+
+            // Chatbot listeners
+            chatbotToggle.addEventListener('click', () => {
+                chatbotWindow.classList.toggle('hidden');
+            });
+            chatbotClose.addEventListener('click', () => {
+                chatbotWindow.classList.add('hidden');
+            });
+
+            // New Dashboard button listeners
+            if (goToPredictionsBtn) {
+                goToPredictionsBtn.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    navigateToPage('page-predictions');
+                });
+            }
+
+            if (goToStudyMaterialsBtn) {
+                goToStudyMaterialsBtn.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    navigateToPage('page-study-materials');
+                });
+            }
+
+            // Fill sample data functionality
+            if (fillSampleDataBtn) {
+                fillSampleDataBtn.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    
+                    // Sample data based on CSV averages
+                    const sampleData = {
+                        previousGpa: '3.1',
+                        attendance: '89',
+                        assignmentsCompleted: '87',
+                        studyHours: '9',
+                        parentalEducation: '2',
+                        socioEconomicStatus: 'Medium',
+                        extracurricularActivities: '1',
+                        hasTutor: '0',
+                        travelTime: '28',
+                        internetAccess: '1',
+                        age: '17',
+                        gender: '1'
+                    };
+                    
+                    // Fill the form with sample data
+                    const form = runPredictionBtn.closest('form');
+                    Object.keys(sampleData).forEach(key => {
+                        const input = form.querySelector(`[name="${key}"]`);
+                        if (input) {
+                            input.value = sampleData[key];
+                        }
+                    });
+                    
+                    showError('Sample data filled! You can now run the prediction or modify the values.');
+                });
+            }
+
+            // Prediction functionality
+            if (runPredictionBtn) {
+                runPredictionBtn.addEventListener('click', async (e) => {
+                    e.preventDefault();
+
+                    if (!currentUser) {
+                        showError('Please log in to make predictions');
+                        return;
+                    }
+
+                    // Collect form data
+                    const form = runPredictionBtn.closest('form');
+                    const formData = new FormData(form);
+                    const predictionData = {};
+
+                    // Convert form data to object
+                    for (let [key, value] of formData.entries()) {
+                        predictionData[key] = value;
+                    }
+
+                    // Validate required fields
+                    const requiredFields = ['previousGpa', 'attendance', 'assignmentsCompleted', 'studyHours', 'age'];
+                    const missingFields = requiredFields.filter(field => !predictionData[field]);
+
+                    if (missingFields.length > 0) {
+                        showError('Please fill in all required fields: GPA, Attendance, Assignments, Study Hours, and Age');
+                        return;
+                    }
+
+                    // Validate numeric ranges
+                    const gpa = parseFloat(predictionData.previousGpa);
+                    const attendance = parseFloat(predictionData.attendance);
+                    const assignments = parseFloat(predictionData.assignmentsCompleted);
+                    const studyHours = parseFloat(predictionData.studyHours);
+                    const age = parseInt(predictionData.age);
+                    const travelTime = parseFloat(predictionData.travelTime);
+
+                    if (gpa < 0 || gpa > 4) {
+                        showError('GPA must be between 0.0 and 4.0');
+                        return;
+                    }
+                    if (attendance < 0 || attendance > 100) {
+                        showError('Attendance must be between 0% and 100%');
+                        return;
+                    }
+                    if (assignments < 0 || assignments > 100) {
+                        showError('Assignments completed must be between 0% and 100%');
+                        return;
+                    }
+                    if (studyHours < 0 || studyHours > 25) {
+                        showError('Study hours must be between 0 and 25 hours per week');
+                        return;
+                    }
+                    if (age < 16 || age > 18) {
+                        showError('Age must be between 16 and 18 years');
+                        return;
+                    }
+                    if (travelTime && (travelTime < 5 || travelTime > 120)) {
+                        showError('Travel time must be between 5 and 120 minutes');
+                        return;
+                    }
+
+                    showLoading(runPredictionBtn, predictionText, predictionLoading);
+
+                    try {
+                        // Call local prediction API (FastAPI)
+                        const apiUrl = 'http://127.0.0.1:8000/predict';
+                        const response = await fetch(apiUrl, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify(predictionData),
+                        });
+                        if (!response.ok) {
+                            const err = await response.json().catch(() => ({}));
+                            throw new Error(err.detail || `Prediction API error: ${response.status}`);
+                        }
+                        const result = await response.json();
+                        const predictedScore = result.score_display; // 0-100 scaled for UI
+                        const riskLevel = result.predicted_category; // High/Medium/Low
+
+                        // Update UI: score and risk label
+                        const scoreEl = document.getElementById('predicted-score-label');
+                        const riskEl = document.getElementById('risk-level-label');
+                        if (scoreEl) scoreEl.textContent = `${Math.round(predictedScore)}%`;
+                        if (riskEl) {
+                            riskEl.textContent = `${riskLevel} Risk`;
+                            riskEl.className = 'inline-block px-6 py-3 rounded-full font-semibold text-lg';
+                            if (riskLevel === 'Low') {
+                                riskEl.classList.add('bg-emerald-500/20', 'text-emerald-600');
+                            } else if (riskLevel === 'Medium') {
+                                riskEl.classList.add('bg-yellow-500/20', 'text-yellow-600');
+                            } else {
+                                riskEl.classList.add('bg-red-500/20', 'text-red-600');
+                            }
+                        }
+
+                        // Update simplified result box (always visible)
+                        const simpleBox = document.getElementById('simple-result');
+                        const simpleScore = document.getElementById('simple-prediction-score');
+                        const simpleChip = document.getElementById('simple-risk-chip');
+                        const simpleNote = document.getElementById('simple-result-note');
+                        if (simpleBox && simpleScore && simpleChip) {
+                            simpleBox.classList.remove('hidden');
+                            simpleScore.textContent = `${Math.round(predictedScore)}%`;
+                            simpleChip.textContent = `${riskLevel} Risk`;
+                            simpleChip.className = 'px-3 py-1 rounded-full text-sm font-semibold';
+                            if (riskLevel === 'Low') {
+                                simpleChip.classList.add('bg-emerald-500/20', 'text-emerald-600');
+                            } else if (riskLevel === 'Medium') {
+                                simpleChip.classList.add('bg-yellow-500/20', 'text-yellow-600');
+                            } else {
+                                simpleChip.classList.add('bg-red-500/20', 'text-red-600');
+                            }
+                            if (simpleNote) simpleNote.textContent = 'Result generated successfully.';
+                        }
+
+                        // Save to Firestore with actual prediction
+                        const predictionRef = await savePredictionToFirestore({ ...predictionData, predictedScore, riskLevel: `${riskLevel} Risk` });
+                        console.log('Prediction saved with ID:', predictionRef.id);
+
+                        hideLoading(runPredictionBtn, predictionText, predictionLoading);
+                        showError('Prediction completed and saved!');
+
+                    } catch (error) {
+                        hideLoading(runPredictionBtn, predictionText, predictionLoading);
+                        console.error('Prediction error:', error);
+                        showError(`Prediction failed. ${error.message || ''}`.trim());
+                    }
+                });
+            }
+
+            // --- DASHBOARD FUNCTIONALITY --- //
+            
+            // Initialize dashboard when it's loaded
+            function initDashboard() {
+                updateWelcomeName();
+                loadDashboardData();
+                lucide.createIcons();
+            }
+            
+            // --- PREDICTIONS PAGE FUNCTIONALITY --- //
+            
+            // Initialize predictions page when it's loaded
+            function initPredictionsPage() {
+                setupPredictionForm();
+                lucide.createIcons();
+            }
+            
+            // Setup prediction form functionality
+            function setupPredictionForm() {
+                const runPredictionBtn = document.getElementById('run-prediction-btn');
+                const fillSampleDataBtn = document.getElementById('fill-sample-data-btn');
+                const predictionForm = document.querySelector('#page-predictions form');
+                
+                if (runPredictionBtn) {
+                    runPredictionBtn.addEventListener('click', handlePredictionSubmit);
+                }
+                
+                if (fillSampleDataBtn) {
+                    fillSampleDataBtn.addEventListener('click', fillSampleData);
+                }
+            }
+            
+            // Fill sample data for testing
+            function fillSampleData() {
+                const form = document.querySelector('#page-predictions form');
+                if (!form) return;
+                
+                const sampleData = {
+                    'previousGpa': '3.2',
+                    'attendance': '92',
+                    'assignmentsCompleted': '85',
+                    'studyHours': '12',
+                    'parentalEducation': '3',
+                    'socioEconomicStatus': 'Medium',
+                    'extracurricularActivities': '2',
+                    'hasTutor': '0',
+                    'travelTime': '25',
+                    'internetAccess': '1',
+                    'age': '17',
+                    'gender': '1'
+                };
+                
+                Object.entries(sampleData).forEach(([name, value]) => {
+                    const input = form.querySelector(`[name="${name}"]`);
+                    if (input) {
+                        input.value = value;
+                    }
+                });
+                
+                showToast('Sample data filled successfully!');
+            }
+            
+            // Handle prediction form submission
+            async function handlePredictionSubmit() {
+                console.log('Prediction form submitted');
+                const form = document.querySelector('#page-predictions form');
+                if (!form) {
+                    console.error('Prediction form not found');
+                    showToast('Error: Form not found', 'error');
+                    return;
+                }
+                
+                const formData = new FormData(form);
+                const data = Object.fromEntries(formData.entries());
+                console.log('Form data:', data);
+                
+                // Validate required fields
+                const requiredFields = ['previousGpa', 'attendance', 'assignmentsCompleted', 'studyHours', 'parentalEducation', 'socioEconomicStatus', 'extracurricularActivities', 'hasTutor', 'internetAccess', 'age', 'gender'];
+                const missingFields = requiredFields.filter(field => !data[field] || data[field].trim() === '');
+                
+                if (missingFields.length > 0) {
+                    console.error('Missing required fields:', missingFields);
+                    showToast(`Please fill in all required fields: ${missingFields.join(', ')}`, 'error');
+                    return;
+                }
+                
+                // Show loading state
+                const runPredictionBtn = document.getElementById('run-prediction-btn');
+                const predictionText = document.getElementById('prediction-text');
+                const predictionLoading = document.getElementById('prediction-loading');
+                
+                if (runPredictionBtn) {
+                    runPredictionBtn.disabled = true;
+                    if (predictionText) predictionText.textContent = 'Analyzing...';
+                    if (predictionLoading) predictionLoading.classList.remove('hidden');
+                }
+                
+                try {
+                    // Convert data types for API
+                    const apiData = {
+                        previousGpa: parseFloat(data.previousGpa),
+                        attendance: parseFloat(data.attendance),
+                        assignmentsCompleted: parseFloat(data.assignmentsCompleted),
+                        studyHours: parseFloat(data.studyHours),
+                        parentalEducation: parseInt(data.parentalEducation),
+                        socioEconomicStatus: data.socioEconomicStatus,
+                        extracurricularActivities: parseInt(data.extracurricularActivities),
+                        hasTutor: parseInt(data.hasTutor),
+                        travelTime: data.travelTime ? parseFloat(data.travelTime) : 20,
+                        internetAccess: parseInt(data.internetAccess),
+                        age: parseInt(data.age),
+                        gender: parseInt(data.gender)
+                    };
+                    
+                    console.log('Sending API request with data:', apiData);
+                    
+                    // Make API call to prediction endpoint
+                    const response = await fetch('http://127.0.0.1:8000/predict', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Accept': 'application/json'
+                        },
+                        body: JSON.stringify(apiData)
+                    });
+                    
+                    console.log('API response status:', response.status);
+                    
+                    if (!response.ok) {
+                        let errorMessage = `HTTP error! status: ${response.status}`;
+                        try {
+                            const errorData = await response.json();
+                            console.error('API error response:', errorData);
+                            errorMessage = errorData.detail || JSON.stringify(errorData);
+                        } catch (e) {
+                            console.error('Error parsing error response:', e);
+                        }
+                        throw new Error(errorMessage);
+                    }
+                    
+                    const result = await response.json();
+                    console.log('API success response:', result);
+                    
+                    // Show prediction results
+                    showPredictionResults(result);
+                    showToast('Prediction completed successfully!', 'success');
+                    
+                } catch (error) {
+                    console.error('Prediction error:', error);
+                    showToast(`Failed to generate prediction: ${error.message}`, 'error');
+                } finally {
+                    // Reset loading state
+                    if (runPredictionBtn) {
+                        runPredictionBtn.disabled = false;
+                        if (predictionText) predictionText.textContent = 'Run Prediction';
+                        if (predictionLoading) predictionLoading.classList.add('hidden');
+                    }
+                }
+            }
+            
+            // Show prediction results
+            function showPredictionResults(result) {
+                console.log('Prediction result:', result);
+                
+                // Update the simple result display
+                const simpleResult = document.getElementById('simple-result');
+                const simplePredictionScore = document.getElementById('simple-prediction-score');
+                const simpleRiskChip = document.getElementById('simple-risk-chip');
+                const simpleResultNote = document.getElementById('simple-result-note');
+                
+                if (simpleResult && simplePredictionScore && simpleRiskChip && simpleResultNote) {
+                    // Show the result section
+                    simpleResult.classList.remove('hidden');
+                    
+                    // Update score
+                    simplePredictionScore.textContent = Math.round(result.score_display) + '%';
+                    
+                    // Update risk category with appropriate styling
+                    const riskCategory = result.predicted_category;
+                    simpleRiskChip.textContent = riskCategory;
+                    
+                    // Remove existing color classes
+                    simpleRiskChip.className = 'px-3 py-1 rounded-full text-sm font-semibold';
+                    
+                    // Add appropriate color based on risk level
+                    if (riskCategory === 'Low') {
+                        simpleRiskChip.classList.add('bg-green-500/20', 'text-green-600', 'dark:text-green-400');
+                    } else if (riskCategory === 'Medium') {
+                        simpleRiskChip.classList.add('bg-yellow-500/20', 'text-yellow-600', 'dark:text-yellow-400');
+                    } else if (riskCategory === 'High') {
+                        simpleRiskChip.classList.add('bg-red-500/20', 'text-red-600', 'dark:text-red-400');
+                    }
+                    
+                    // Update note with confidence
+                    simpleResultNote.textContent = `Confidence: ${Math.round(result.confidence * 100)}%`;
+                }
+                
+                // Update dashboard stats if available
+                updateDashboardWithPrediction(result);
+            }
+            
+            // Update dashboard with prediction results
+            function updateDashboardWithPrediction(result) {
+                // Update risk level in dashboard
+                const riskLevelElement = document.getElementById('risk-level');
+                if (riskLevelElement) {
+                    riskLevelElement.textContent = result.predicted_category;
+                    
+                    // Add color coding
+                    riskLevelElement.className = riskLevelElement.className.replace(/text-\w+-\d+/, '');
+                    if (result.predicted_category === 'Low') {
+                        riskLevelElement.classList.add('text-green-600', 'dark:text-green-400');
+                    } else if (result.predicted_category === 'Medium') {
+                        riskLevelElement.classList.add('text-yellow-600', 'dark:text-yellow-400');
+                    } else if (result.predicted_category === 'High') {
+                        riskLevelElement.classList.add('text-red-600', 'dark:text-red-400');
+                    }
+                }
+                
+                // Update predicted GPA (convert score to GPA-like format)
+                const predictedGpaElement = document.getElementById('predicted-gpa');
+                if (predictedGpaElement) {
+                    // Convert score (0-100) to GPA-like format (1.0-4.0)
+                    const gpaScore = (result.score_display / 100) * 3 + 1;
+                    predictedGpaElement.textContent = gpaScore.toFixed(1);
+                }
+            }
+            
+            // --- STUDY MATERIALS PAGE FUNCTIONALITY --- //
+            
+            // Initialize study materials page when it's loaded
+            function initStudyMaterialsPage() {
+                setupStudyMaterialsFilters();
+                lucide.createIcons();
+            }
+            
+            // Setup study materials filters and search
+            function setupStudyMaterialsFilters() {
+                // Add any filtering or search functionality here
+                console.log('Study materials page initialized');
+            }
+            
+            // Update welcome name in dashboard
+            function updateWelcomeName() {
+                const user = window.firebaseAuth?.currentUser;
+                let name = "Student";
+                
+                if (user) {
+                    if (user.displayName && user.displayName.trim()) {
+                        name = user.displayName.trim();
+                    } else if (user.email) {
+                        name = user.email.split('@')[0].charAt(0).toUpperCase() + user.email.split('@')[0].slice(1);
+                    }
+                }
+                
+                const welcomeNameEl = document.getElementById('welcome-user-name');
+                if (welcomeNameEl) {
+                    welcomeNameEl.textContent = name;
+                }
+            }
+            
+            // Load dashboard data
+            async function loadDashboardData() {
+                const user = window.firebaseAuth?.currentUser;
+                if (!user) return;
+                
+                try {
+                    // Load user's academic data from Firestore
+                    const userDoc = await window.firebaseDb.getDoc(
+                        window.firebaseDb.doc(window.firebaseDb.getFirestore(), 'users', user.uid)
+                    );
+                    
+                    if (userDoc.exists()) {
+                        const userData = userDoc.data();
+                        
+                        // Update dashboard stats if available
+                        if (userData.currentGPA) {
+                            document.getElementById('current-gpa').textContent = userData.currentGPA;
+                        }
+                        if (userData.predictedGPA) {
+                            document.getElementById('predicted-gpa').textContent = userData.predictedGPA;
+                        }
+                        if (userData.studyHours) {
+                            document.getElementById('study-hours').textContent = userData.studyHours + 'h';
+                        }
+                        if (userData.riskLevel) {
+                            const riskElement = document.getElementById('risk-level');
+                            riskElement.textContent = userData.riskLevel;
+                            // Add color coding for risk level
+                            riskElement.className = riskElement.className.replace(/text-\w+-\d+/, '');
+                            if (userData.riskLevel === 'Low') {
+                                riskElement.classList.add('text-green-600', 'dark:text-green-400');
+                            } else if (userData.riskLevel === 'Medium') {
+                                riskElement.classList.add('text-yellow-600', 'dark:text-yellow-400');
+                            } else if (userData.riskLevel === 'High') {
+                                riskElement.classList.add('text-red-600', 'dark:text-red-400');
+                            }
+                        }
+                    }
+                } catch (error) {
+                    console.error('Error loading dashboard data:', error);
+                }
+            }
+
+            // --- SETTINGS PAGE FUNCTIONALITY --- //
+            
+            // Initialize settings page when it's loaded
+            function initSettingsPage() {
+                // Load user data
+                loadUserData();
+                
+
+                
+                // Set up event listeners
+                setupSettingsEventListeners();
+                
+                // Set initial theme based on localStorage or system preference
+                const savedTheme = localStorage.getItem('theme') || 
+                    (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+                document.documentElement.classList.toggle('dark', savedTheme === 'dark');
+                document.getElementById('theme-toggle').checked = savedTheme === 'dark';
+            }
+            
+            // Load user data into the form
+            function loadUserData() {
+                const user = window.firebaseAuth.currentUser;
+                if (!user) return;
+                
+                // Set user data from Firebase
+                document.getElementById('full-name').value = user.displayName || '';
+                document.getElementById('user-email').value = user.email || '';
+                
+                // Load additional user data from Firestore if available
+                loadUserProfile(user.uid);
+                
+                // Load theme and appearance preferences
+                loadAppearanceSettings();
+            }
+            
+            // Load additional user profile data from Firestore
+            async function loadUserProfile(userId) {
+                try {
+                    const userDoc = await window.firebaseDb.getDoc(
+                        window.firebaseDb.doc(window.firebaseDb.getFirestore(), 'users', userId)
+                    );
+                    
+                    if (userDoc.exists()) {
+                        const userData = userDoc.data();
+                        
+                        // Load profile information
+                        document.getElementById('user-school').value = userData.school || '';
+                        document.getElementById('student-id').value = userData.studentId || '';
+                        document.getElementById('phone-number').value = userData.phoneNumber || '';
+                        if (userData.grade) {
+                            document.getElementById('user-grade').value = userData.grade;
+                        }
+                        
+                        // Set privacy preferences if they exist
+                        if (userData.privacySettings) {
+                            const settings = userData.privacySettings;
+                            document.getElementById('data-collection').checked = settings.dataCollection !== false;
+                            document.getElementById('personalized-recommendations').checked = settings.personalizedRecommendations !== false;
+                            document.getElementById('performance-monitoring').checked = settings.performanceMonitoring !== false;
+                            document.getElementById('learning-analytics').checked = settings.learningAnalytics !== false;
+                            document.getElementById('share-with-teachers').checked = settings.shareWithTeachers !== false;
+                            document.getElementById('public-profile').checked = settings.publicProfile === true;
+                        }
+                        
+                        // Set notification preferences
+                        if (userData.notificationSettings) {
+                            const notifications = userData.notificationSettings;
+                            document.getElementById('email-notifications').checked = notifications.emailNotifications !== false;
+                            document.getElementById('study-reminders').checked = notifications.studyReminders !== false;
+                            document.getElementById('progress-updates').checked = notifications.progressUpdates !== false;
+                        }
+                    }
+                } catch (error) {
+                    console.error('Error loading user profile:', error);
+                }
+            }
+            
+            // Load appearance settings
+            function loadAppearanceSettings() {
+                // Load theme preference
+                const savedTheme = localStorage.getItem('theme') || 'auto';
+                const themeMode = document.querySelector(`input[name="theme-mode"][value="${savedTheme}"]`);
+                if (themeMode) {
+                    themeMode.checked = true;
+                }
+                
+                // Apply theme
+                applyTheme(savedTheme);
+                
+                // Load accent color
+                const savedAccentColor = localStorage.getItem('accentColor') || '#3B82F6';
+                document.getElementById('accent-color').value = savedAccentColor;
+                applyAccentColor(savedAccentColor);
+                
+                // Load font size
+                const savedFontSize = localStorage.getItem('fontSize') || '16';
+                document.getElementById('font-size-display').textContent = savedFontSize + 'px';
+                applyFontSize(savedFontSize);
+                
+                // Load compact mode
+                const compactMode = localStorage.getItem('compactMode') === 'true';
+                document.getElementById('compact-mode').checked = compactMode;
+                applyCompactMode(compactMode);
+            }
+            
+            // Apply theme based on mode
+            function applyTheme(themeMode) {
+                let isDark = false;
+                
+                if (themeMode === 'dark') {
+                    isDark = true;
+                } else if (themeMode === 'light') {
+                    isDark = false;
+                } else if (themeMode === 'auto') {
+                    isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+                }
+                
+                document.documentElement.classList.toggle('dark', isDark);
+                localStorage.setItem('theme', themeMode);
+            }
+            
+            // Apply accent color
+            function applyAccentColor(color) {
+                document.documentElement.style.setProperty('--accent-color', color);
+                localStorage.setItem('accentColor', color);
+            }
+            
+            // Apply font size
+            function applyFontSize(size) {
+                document.documentElement.style.fontSize = size + 'px';
+                localStorage.setItem('fontSize', size);
+            }
+            
+            // Apply compact mode
+            function applyCompactMode(enabled) {
+                document.documentElement.classList.toggle('compact', enabled);
+                localStorage.setItem('compactMode', enabled);
+            }
+            
+            // Validate profile form
+            function validateProfileForm() {
+                let isValid = true;
+                
+                // Clear previous errors
+                document.querySelectorAll('[id$="-error"]').forEach(error => {
+                    error.classList.add('hidden');
+                });
+                
+                // Validate full name
+                const fullName = document.getElementById('full-name').value.trim();
+                if (!fullName) {
+                    document.getElementById('name-error').textContent = 'Full name is required';
+                    document.getElementById('name-error').classList.remove('hidden');
+                    isValid = false;
+                }
+                
+                // Validate school
+                const school = document.getElementById('user-school').value.trim();
+                if (!school) {
+                    document.getElementById('school-error').textContent = 'School is required';
+                    document.getElementById('school-error').classList.remove('hidden');
+                    isValid = false;
+                }
+                
+                // Validate grade
+                const grade = document.getElementById('user-grade').value;
+                if (!grade) {
+                    document.getElementById('grade-error').textContent = 'Grade level is required';
+                    document.getElementById('grade-error').classList.remove('hidden');
+                    isValid = false;
+                }
+                
+                return isValid;
+            }
+            
+            // Export user data
+            async function exportUserData() {
+                const user = window.firebaseAuth.currentUser;
+                if (!user) return;
+                
+                try {
+                    const userDoc = await window.firebaseDb.getDoc(
+                        window.firebaseDb.doc(window.firebaseDb.getFirestore(), 'users', user.uid)
+                    );
+                    
+                    const userData = {
+                        profile: {
+                            displayName: user.displayName,
+                            email: user.email,
+                            uid: user.uid,
+                            createdAt: user.metadata.creationTime,
+                            lastSignIn: user.metadata.lastSignInTime
+                        },
+                        settings: userDoc.exists() ? userDoc.data() : {},
+                        exportDate: new Date().toISOString()
+                    };
+                    
+                    const dataStr = JSON.stringify(userData, null, 2);
+                    const dataBlob = new Blob([dataStr], { type: 'application/json' });
+                    const url = URL.createObjectURL(dataBlob);
+                    
+                    const link = document.createElement('a');
+                    link.href = url;
+                    link.download = `user-data-${user.uid}-${new Date().toISOString().split('T')[0]}.json`;
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                    URL.revokeObjectURL(url);
+                    
+                    showToast('Data exported successfully');
+                } catch (error) {
+                    console.error('Error exporting data:', error);
+                    showToast('Failed to export data', 'error');
+                }
+            }
+            
+            // Set up all event listeners for the settings page
+            function setupSettingsEventListeners() {
+                // Profile edit toggle
+                const editProfileBtn = document.getElementById('edit-profile-btn');
+                const cancelProfileEditBtn = document.getElementById('cancel-profile-edit');
+                const profileForm = document.getElementById('profile-form');
+                const profileInputs = profileForm.querySelectorAll('input, select');
+                
+                if (editProfileBtn) {
+                    editProfileBtn.addEventListener('click', () => {
+                        profileInputs.forEach(input => input.disabled = false);
+                        document.getElementById('profile-btns').classList.remove('hidden');
+                        editProfileBtn.classList.add('hidden');
+                    });
+                }
+                
+                if (cancelProfileEditBtn) {
+                    cancelProfileEditBtn.addEventListener('click', () => {
+                        profileInputs.forEach(input => input.disabled = true);
+                        document.getElementById('profile-btns').classList.add('hidden');
+                        editProfileBtn.classList.remove('hidden');
+                        loadUserData(); // Reset form
+                    });
+                }
+                
+                // Profile form submission
+                if (profileForm) {
+                    profileForm.addEventListener('submit', async (e) => {
+                        e.preventDefault();
+                        
+                        // Validate form
+                        if (!validateProfileForm()) {
+                            return;
+                        }
+                        
+                        const user = window.firebaseAuth.currentUser;
+                        if (!user) return;
+                        
+                        const fullName = document.getElementById('full-name').value;
+                        const school = document.getElementById('user-school').value;
+                        const grade = document.getElementById('user-grade').value;
+                        const studentId = document.getElementById('student-id').value;
+                        const phoneNumber = document.getElementById('phone-number').value;
+                        
+                        try {
+                            // Update display name in Firebase Auth
+                            await window.firebaseAuth.updateProfile(user, {
+                                displayName: fullName
+                            });
+                            
+                            // Update user data in Firestore
+                            await window.firebaseDb.setDoc(
+                                window.firebaseDb.doc(window.firebaseDb.getFirestore(), 'users', user.uid),
+                                {
+                                    displayName: fullName,
+                                    school,
+                                    grade,
+                                    studentId,
+                                    phoneNumber,
+                                    updatedAt: window.firebaseDb.serverTimestamp()
+                                },
+                                { merge: true }
+                            );
+                            
+                            // Update UI
+                            profileInputs.forEach(input => input.disabled = true);
+                            document.getElementById('profile-btns').classList.add('hidden');
+                            editProfileBtn.classList.remove('hidden');
+                            
+                            // Update dashboard name if on dashboard
+                            updateWelcomeName();
+                            
+                            // Show success message
+                            showToast('Profile updated successfully');
+                            
+                        } catch (error) {
+                            console.error('Error updating profile:', error);
+                            showToast('Failed to update profile', 'error');
+                        }
+                    });
+                }
+                
+                // Theme mode selection
+                const themeModes = document.querySelectorAll('input[name="theme-mode"]');
+                themeModes.forEach(mode => {
+                    mode.addEventListener('change', (e) => {
+                        applyTheme(e.target.value);
+                    });
+                });
+                
+                // Accent color picker
+                const accentColorPicker = document.getElementById('accent-color');
+                if (accentColorPicker) {
+                    accentColorPicker.addEventListener('change', (e) => {
+                        applyAccentColor(e.target.value);
+                    });
+                }
+                
+                // Font size controls
+                const fontDecrease = document.getElementById('font-decrease');
+                const fontIncrease = document.getElementById('font-increase');
+                const fontSizeDisplay = document.getElementById('font-size-display');
+                
+                if (fontDecrease && fontIncrease && fontSizeDisplay) {
+                    fontDecrease.addEventListener('click', () => {
+                        const currentSize = parseInt(fontSizeDisplay.textContent);
+                        if (currentSize > 12) {
+                            const newSize = currentSize - 2;
+                            fontSizeDisplay.textContent = newSize + 'px';
+                            applyFontSize(newSize);
+                        }
+                    });
+                    
+                    fontIncrease.addEventListener('click', () => {
+                        const currentSize = parseInt(fontSizeDisplay.textContent);
+                        if (currentSize < 24) {
+                            const newSize = currentSize + 2;
+                            fontSizeDisplay.textContent = newSize + 'px';
+                            applyFontSize(newSize);
+                        }
+                    });
+                }
+                
+                // Compact mode toggle
+                const compactModeToggle = document.getElementById('compact-mode');
+                if (compactModeToggle) {
+                    compactModeToggle.addEventListener('change', (e) => {
+                        applyCompactMode(e.target.checked);
+                    });
+                }
+                
+                // Privacy settings toggles
+                const privacyToggles = [
+                    'data-collection', 'personalized-recommendations', 'performance-monitoring',
+                    'learning-analytics', 'share-with-teachers', 'public-profile'
+                ];
+                privacyToggles.forEach(toggleId => {
+                    const toggle = document.getElementById(toggleId);
+                    if (toggle) {
+                        toggle.addEventListener('change', async () => {
+                            const user = window.firebaseAuth.currentUser;
+                            if (!user) return;
+                            
+                            try {
+                                const privacySettings = {
+                                    dataCollection: document.getElementById('data-collection').checked,
+                                    personalizedRecommendations: document.getElementById('personalized-recommendations').checked,
+                                    performanceMonitoring: document.getElementById('performance-monitoring').checked,
+                                    learningAnalytics: document.getElementById('learning-analytics').checked,
+                                    shareWithTeachers: document.getElementById('share-with-teachers').checked,
+                                    publicProfile: document.getElementById('public-profile').checked
+                                };
+                                
+                                await window.firebaseDb.setDoc(
+                                    window.firebaseDb.doc(window.firebaseDb.getFirestore(), 'users', user.uid),
+                                    {
+                                        privacySettings,
+                                        updatedAt: window.firebaseDb.serverTimestamp()
+                                    },
+                                    { merge: true }
+                                );
+                                
+                                showToast('Privacy settings updated');
+                                
+                            } catch (error) {
+                                console.error('Error updating privacy settings:', error);
+                                showToast('Failed to update privacy settings', 'error');
+                            }
+                        });
+                    }
+                });
+                
+                // Notification settings toggles
+                const notificationToggles = ['email-notifications', 'study-reminders', 'progress-updates'];
+                notificationToggles.forEach(toggleId => {
+                    const toggle = document.getElementById(toggleId);
+                    if (toggle) {
+                        toggle.addEventListener('change', async () => {
+                            const user = window.firebaseAuth.currentUser;
+                            if (!user) return;
+                            
+                            try {
+                                const notificationSettings = {
+                                    emailNotifications: document.getElementById('email-notifications').checked,
+                                    studyReminders: document.getElementById('study-reminders').checked,
+                                    progressUpdates: document.getElementById('progress-updates').checked
+                                };
+                                
+                                await window.firebaseDb.setDoc(
+                                    window.firebaseDb.doc(window.firebaseDb.getFirestore(), 'users', user.uid),
+                                    {
+                                        notificationSettings,
+                                        updatedAt: window.firebaseDb.serverTimestamp()
+                                    },
+                                    { merge: true }
+                                );
+                                
+                                showToast('Notification settings updated');
+                                
+                            } catch (error) {
+                                console.error('Error updating notification settings:', error);
+                                showToast('Failed to update notification settings', 'error');
+                            }
+                        });
+                    }
+                });
+                
+                // Change password modal
+                const changePasswordBtn = document.getElementById('change-password-btn');
+                const changePasswordModal = document.getElementById('change-password-modal');
+                const closePasswordModal = document.getElementById('close-password-modal');
+                const cancelPasswordChange = document.getElementById('cancel-password-change');
+                const changePasswordForm = document.getElementById('change-password-form');
+                
+                if (changePasswordBtn) {
+                    changePasswordBtn.addEventListener('click', () => {
+                        changePasswordModal.classList.remove('hidden');
+                    });
+                }
+                
+                if (closePasswordModal) {
+                    closePasswordModal.addEventListener('click', () => {
+                        changePasswordModal.classList.add('hidden');
+                    });
+                }
+                
+                if (cancelPasswordChange) {
+                    cancelPasswordChange.addEventListener('click', () => {
+                        changePasswordModal.classList.add('hidden');
+                        changePasswordForm.reset();
+                    });
+                }
+                
+                // Change password form submission
+                if (changePasswordForm) {
+                    changePasswordForm.addEventListener('submit', async (e) => {
+                        e.preventDefault();
+                        
+                        const currentPassword = document.getElementById('current-password').value;
+                        const newPassword = document.getElementById('new-password').value;
+                        const confirmPassword = document.getElementById('confirm-password').value;
+                        
+                        if (newPassword !== confirmPassword) {
+                            showToast('New passwords do not match', 'error');
+                            return;
+                        }
+                        
+                        const user = window.firebaseAuth.currentUser;
+                        if (!user || !user.email) return;
+                        
+                        try {
+                            // Reauthenticate user
+                            const credential = window.firebaseAuth.EmailAuthProvider.credential(
+                                user.email,
+                                currentPassword
+                            );
+                            
+                            await window.firebaseAuth.reauthenticateWithCredential(user, credential);
+                            
+                            // Update password
+                            await window.firebaseAuth.updatePassword(user, newPassword);
+                            
+                            // Reset form and close modal
+                            changePasswordForm.reset();
+                            changePasswordModal.classList.add('hidden');
+                            
+                            showToast('Password updated successfully');
+                            
+                        } catch (error) {
+                            console.error('Error changing password:', error);
+                            showToast('Failed to update password. ' + (error.message || ''), 'error');
+                        }
+                    });
+                }
+                
+                // Delete account modal
+                const deleteAccountBtn = document.getElementById('delete-account-btn');
+                const deleteAccountModal = document.getElementById('delete-account-modal');
+                const cancelDeleteAccount = document.getElementById('cancel-delete-account');
+                const confirmDeleteAccount = document.getElementById('confirm-delete-account');
+                
+                if (deleteAccountBtn) {
+                    deleteAccountBtn.addEventListener('click', () => {
+                        deleteAccountModal.classList.remove('hidden');
+                    });
+                }
+                
+                if (cancelDeleteAccount) {
+                    cancelDeleteAccount.addEventListener('click', () => {
+                        deleteAccountModal.classList.add('hidden');
+                    });
+                }
+                
+                // Confirm account deletion
+                if (confirmDeleteAccount) {
+                    confirmDeleteAccount.addEventListener('click', async () => {
+                        const user = window.firebaseAuth.currentUser;
+                        if (!user) return;
+                        
+                        try {
+                            // Delete user data from Firestore
+                            await window.firebaseDb.deleteDoc(
+                                window.firebaseDb.doc(window.firebaseDb.getFirestore(), 'users', user.uid)
+                            );
+                            
+                            // Delete user account
+                            await user.delete();
+                            
+                            // Sign out and redirect to login
+                            await window.firebaseAuth.signOut(window.firebaseAuth.getAuth());
+                            window.location.href = 'index.html';
+                            
+                        } catch (error) {
+                            console.error('Error deleting account:', error);
+                            showToast('Failed to delete account. ' + (error.message || ''), 'error');
+                            deleteAccountModal.classList.add('hidden');
+                        }
+                    });
+                }
+                
+                // Two-factor authentication modal
+                const twoFactorBtn = document.getElementById('two-factor-btn');
+                const twoFactorModal = document.getElementById('two-factor-modal');
+                const closeTwoFactorModal = document.getElementById('close-two-factor-modal');
+                const cancel2faSetup = document.getElementById('cancel-2fa-setup');
+                const setup2faBtn = document.getElementById('setup-2fa-btn');
+                
+                if (twoFactorBtn) {
+                    twoFactorBtn.addEventListener('click', () => {
+                        twoFactorModal.classList.remove('hidden');
+                    });
+                }
+                
+                if (closeTwoFactorModal) {
+                    closeTwoFactorModal.addEventListener('click', () => {
+                        twoFactorModal.classList.add('hidden');
+                    });
+                }
+                
+                if (cancel2faSetup) {
+                    cancel2faSetup.addEventListener('click', () => {
+                        twoFactorModal.classList.add('hidden');
+                    });
+                }
+                
+                if (setup2faBtn) {
+                    setup2faBtn.addEventListener('click', () => {
+                        showToast('2FA setup feature coming soon!', 'info');
+                        twoFactorModal.classList.add('hidden');
+                    });
+                }
+                
+                // Deactivate account modal
+                const deactivateAccountBtn = document.getElementById('deactivate-account-btn');
+                const deactivateAccountModal = document.getElementById('deactivate-account-modal');
+                const cancelDeactivateAccount = document.getElementById('cancel-deactivate-account');
+                const confirmDeactivateAccount = document.getElementById('confirm-deactivate-account');
+                
+                if (deactivateAccountBtn) {
+                    deactivateAccountBtn.addEventListener('click', () => {
+                        deactivateAccountModal.classList.remove('hidden');
+                    });
+                }
+                
+                if (cancelDeactivateAccount) {
+                    cancelDeactivateAccount.addEventListener('click', () => {
+                        deactivateAccountModal.classList.add('hidden');
+                    });
+                }
+                
+                if (confirmDeactivateAccount) {
+                    confirmDeactivateAccount.addEventListener('click', async () => {
+                        const user = window.firebaseAuth.currentUser;
+                        if (!user) return;
+                        
+                        try {
+                            // Mark account as deactivated in Firestore
+                            await window.firebaseDb.setDoc(
+                                window.firebaseDb.doc(window.firebaseDb.getFirestore(), 'users', user.uid),
+                                {
+                                    deactivated: true,
+                                    deactivatedAt: window.firebaseDb.serverTimestamp(),
+                                    updatedAt: window.firebaseDb.serverTimestamp()
+                                },
+                                { merge: true }
+                            );
+                            
+                            // Sign out and redirect to login
+                            await window.firebaseAuth.signOut(window.firebaseAuth.getAuth());
+                            showToast('Account deactivated successfully');
+                            window.location.href = 'index.html';
+                            
+                        } catch (error) {
+                            console.error('Error deactivating account:', error);
+                            showToast('Failed to deactivate account', 'error');
+                            deactivateAccountModal.classList.add('hidden');
+                        }
+                    });
+                }
+                
+                // Export data button
+                const exportDataBtn = document.getElementById('export-data-btn');
+                if (exportDataBtn) {
+                    exportDataBtn.addEventListener('click', () => {
+                        exportUserData();
+                    });
+                }
+                
+                // Download data button (in account management)
+                const downloadDataBtn = document.getElementById('download-data-btn');
+                if (downloadDataBtn) {
+                    downloadDataBtn.addEventListener('click', () => {
+                        exportUserData();
+                    });
+                }
+                
+                // Clear data button
+                const clearDataBtn = document.getElementById('clear-data-btn');
+                if (clearDataBtn) {
+                    clearDataBtn.addEventListener('click', async () => {
+                        if (confirm('Are you sure you want to clear all your learning data? This action cannot be undone.')) {
+                            const user = window.firebaseAuth.currentUser;
+                            if (!user) return;
+                            
+                            try {
+                                // Clear learning data from Firestore
+                                await window.firebaseDb.setDoc(
+                                    window.firebaseDb.doc(window.firebaseDb.getFirestore(), 'users', user.uid),
+                                    {
+                                        predictions: [],
+                                        studyHistory: [],
+                                        clearedAt: window.firebaseDb.serverTimestamp(),
+                                        updatedAt: window.firebaseDb.serverTimestamp()
+                                    },
+                                    { merge: true }
+                                );
+                                
+                                showToast('Learning data cleared successfully');
+                                
+                            } catch (error) {
+                                console.error('Error clearing data:', error);
+                                showToast('Failed to clear data', 'error');
+                            }
+                        }
+                    });
+                }
+            }
+            
+            // Show toast notification
+            function showToast(message, type = 'success') {
+                const toast = document.createElement('div');
+                toast.className = `fixed bottom-6 left-1/2 transform -translate-x-1/2 px-6 py-3 rounded-lg shadow-lg text-white ${
+                    type === 'error' ? 'bg-red-500' : 'bg-green-500'
+                }`;
+                toast.textContent = message;
+                document.body.appendChild(toast);
+                
+                setTimeout(() => {
+                    toast.classList.add('opacity-0', 'transition-opacity', 'duration-500');
+                    setTimeout(() => {
+                        document.body.removeChild(toast);
+                    }, 500);
+                }, 3000);
+            }
+
+            // --- INITIALIZATION --- //
+
+            // Handle redirect results from Google Sign-In
+            const handleRedirectResult = async () => {
+                try {
+                    if (window.firebaseAuthFunctions && window.firebaseAuth) {
+                        console.log('Checking for redirect result...');
+                        const result = await window.firebaseAuthFunctions.getRedirectResult(window.firebaseAuth);
+                        if (result) {
+                            console.log('Redirect result received:', result.user.email);
+                            // The auth state listener will handle the UI transition
+                        } else {
+                            console.log('No redirect result found');
+                        }
+                    }
+                } catch (error) {
+                    console.error('Error handling redirect result:', error);
+                    // Don't show error for redirect results, just log it
+                }
+            };
+
+            // Call redirect result handler on page load
+            handleRedirectResult();
+
+
+
+            lucide.createIcons();
+        });
+    </script>
+
+</body>
+</html>
