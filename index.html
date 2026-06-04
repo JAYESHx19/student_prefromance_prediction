@@ -1,0 +1,1277 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>EduPredict — Student Performance Dashboard</title>
+
+  <!-- Tailwind CDN (utility fallback) -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = { darkMode: 'class', theme: { extend: {} } };
+  </script>
+
+  <!-- Custom design-system stylesheet -->
+  <link rel="stylesheet" href="css/styles.css" />
+
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+
+  <!-- Firebase SDK (ES module) -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-app.js";
+    import {
+      getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword,
+      signOut, sendPasswordResetEmail, onAuthStateChanged, GoogleAuthProvider,
+      signInWithPopup, signInWithRedirect, getRedirectResult, updateProfile,
+      updatePassword, reauthenticateWithCredential, EmailAuthProvider
+    } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-auth.js";
+    import {
+      getFirestore, collection, addDoc, query, where, orderBy, limit,
+      getDocs, serverTimestamp, doc, getDoc, setDoc, deleteDoc
+    } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-firestore.js";
+    import { getAnalytics } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-analytics.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyDVWw8FqNJQho7V1fKieeCsbUAEfFckyno",
+      authDomain: "student-prediction-568af.firebaseapp.com",
+      projectId: "student-prediction-568af",
+      storageBucket: "student-prediction-568af.firebasestorage.app",
+      messagingSenderId: "360498732807",
+      appId: "1:360498732807:web:e3f2b87a69ea8e022a2fa2",
+      measurementId: "G-24EYM1PR9V"
+    };
+
+    const app       = initializeApp(firebaseConfig);
+    const analytics = getAnalytics(app);
+    const auth      = getAuth(app);
+    const db        = getFirestore(app);
+
+    window.firebaseAuth = auth;
+    window.firebaseDb   = db;
+    window.firebaseAuthFunctions = {
+      signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut,
+      sendPasswordResetEmail, onAuthStateChanged, GoogleAuthProvider,
+      signInWithPopup, signInWithRedirect, getRedirectResult,
+      updateProfile, updatePassword, reauthenticateWithCredential, EmailAuthProvider
+    };
+    window.firebaseDbFunctions = {
+      collection, addDoc, query, where, orderBy, limit, getDocs,
+      serverTimestamp, doc, getDoc, setDoc, deleteDoc
+    };
+  </script>
+</head>
+
+<body>
+
+<!-- ═══════════════════════════════════════════
+     AUTH PAGES
+═══════════════════════════════════════════ -->
+
+<!-- Login Page -->
+<div id="login-page" style="display:flex;align-items:center;justify-content:center;min-height:100vh;background:var(--bg-base);padding:16px" data-auth-page="login">
+  <div class="auth-card slide-up">
+
+    <!-- Logo -->
+    <div style="text-align:center;margin-bottom:32px">
+      <div style="display:inline-flex;align-items:center;justify-content:center;width:52px;height:52px;background:var(--accent);border-radius:14px;margin-bottom:16px">
+        <svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/></svg>
+      </div>
+      <h1 style="font-size:1.6rem;font-weight:800;color:var(--text-primary);margin-bottom:6px">Welcome back</h1>
+      <p style="font-size:.875rem;color:var(--text-secondary)">Sign in to your EduPredict account</p>
+    </div>
+
+    <!-- Form -->
+    <form id="login-form" style="display:flex;flex-direction:column;gap:14px">
+      <div>
+        <label class="field-label">Email</label>
+        <input id="email-input" type="email" placeholder="you@example.com" class="input-field" autocomplete="email" />
+      </div>
+      <div>
+        <label class="field-label">Password</label>
+        <input id="password-input" type="password" placeholder="••••••••" class="input-field" autocomplete="current-password" />
+      </div>
+      <div style="display:flex;justify-content:flex-end">
+        <a href="#" id="forgot-password" style="font-size:.8rem;color:var(--accent)">Forgot password?</a>
+      </div>
+      <button type="submit" id="login-button" class="btn btn-primary btn-full btn-lg" style="margin-top:4px">
+        <span id="login-text">Sign in</span>
+        <span id="login-loading" class="spinner hidden"></span>
+      </button>
+    </form>
+
+    <div class="auth-divider" style="margin:20px 0">Or continue with</div>
+
+    <!-- Google -->
+    <button type="button" id="google-signin-btn" class="google-btn">
+      <svg width="18" height="18" viewBox="0 0 24 24">
+        <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+        <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+        <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+        <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+      </svg>
+      <span id="google-text">Continue with Google</span>
+      <span id="google-loading" class="spinner spinner-dark hidden"></span>
+    </button>
+
+    <p style="text-align:center;font-size:.85rem;color:var(--text-secondary);margin-top:20px">
+      Don't have an account? <a href="#" id="signup-link" style="color:var(--accent);font-weight:600">Create one</a>
+    </p>
+    <div id="auth-error" class="hidden" style="margin-top:12px;padding:10px 14px;background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.2);border-radius:8px;font-size:.85rem;color:#ef4444;text-align:center"></div>
+  </div>
+</div>
+
+<!-- Signup Page -->
+<div id="signup-page" style="display:none;align-items:center;justify-content:center;min-height:100vh;background:var(--bg-base);padding:16px">
+  <div class="auth-card slide-up">
+
+    <div style="text-align:center;margin-bottom:32px">
+      <div style="display:inline-flex;align-items:center;justify-content:center;width:52px;height:52px;background:#10b981;border-radius:14px;margin-bottom:16px">
+        <svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+      </div>
+      <h1 style="font-size:1.6rem;font-weight:800;color:var(--text-primary);margin-bottom:6px">Create account</h1>
+      <p style="font-size:.875rem;color:var(--text-secondary)">Join EduPredict and start predicting</p>
+    </div>
+
+    <form id="signup-form" style="display:flex;flex-direction:column;gap:14px">
+      <div>
+        <label class="field-label">First Name</label>
+        <input id="signup-firstname-input" type="text" placeholder="Alex" class="input-field" required />
+      </div>
+      <div>
+        <label class="field-label">Email</label>
+        <input id="signup-email-input" type="email" placeholder="you@example.com" class="input-field" required />
+      </div>
+      <div>
+        <label class="field-label">Password</label>
+        <input id="signup-password-input" type="password" placeholder="Min. 6 characters" class="input-field" required />
+      </div>
+      <div>
+        <label class="field-label">Confirm Password</label>
+        <input id="signup-confirm-password-input" type="password" placeholder="Re-enter password" class="input-field" required />
+      </div>
+      <button type="submit" id="signup-button" class="btn btn-success btn-full btn-lg" style="margin-top:4px">
+        <span id="signup-text">Create Account</span>
+        <span id="signup-loading" class="spinner hidden"></span>
+      </button>
+    </form>
+
+    <p style="text-align:center;font-size:.85rem;color:var(--text-secondary);margin-top:20px">
+      Already have an account? <a href="#" id="login-link" style="color:#10b981;font-weight:600">Sign in</a>
+    </p>
+    <div id="signup-error" class="hidden" style="margin-top:12px;padding:10px 14px;background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.2);border-radius:8px;font-size:.85rem;color:#ef4444;text-align:center"></div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════
+     DASHBOARD SHELL
+═══════════════════════════════════════════ -->
+<div id="dashboard-main" style="display:none">
+
+  <!-- Mobile overlay -->
+  <div id="sidebar-overlay" class="hidden" style="position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:299;backdrop-filter:blur(2px)"></div>
+
+  <div style="display:flex;height:100vh;overflow:hidden">
+
+    <!-- ── Sidebar ── -->
+    <aside id="sidebar" style="width:220px;display:flex;flex-direction:column;flex-shrink:0;height:100vh;overflow:hidden">
+
+      <!-- Logo -->
+      <div style="height:60px;display:flex;align-items:center;padding:0 16px;border-bottom:1px solid var(--border);gap:10px;flex-shrink:0">
+        <div style="width:32px;height:32px;background:var(--accent);border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0">
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/></svg>
+        </div>
+        <span class="sidebar-logo-text" style="font-weight:700;font-size:1rem;color:var(--text-primary)">EduPredict</span>
+      </div>
+
+      <!-- Nav links (injected by JS) -->
+      <nav style="flex:1;padding:12px 10px;overflow-y:auto;display:flex;flex-direction:column;gap:2px"></nav>
+
+      <!-- Logout -->
+      <div style="padding:10px;border-top:1px solid var(--border)">
+        <a href="#" id="logout-button" class="sidebar-link" style="color:var(--text-secondary)">
+          <i data-lucide="log-out" style="width:18px;height:18px;flex-shrink:0"></i>
+          <span class="sidebar-label">Logout</span>
+        </a>
+      </div>
+    </aside>
+
+    <!-- ── Main area ── -->
+    <div style="flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0">
+
+      <!-- Header -->
+      <header id="app-header">
+        <button id="sidebar-toggle" class="btn btn-icon btn-ghost" aria-label="Toggle sidebar">
+          <i data-lucide="menu" style="width:20px;height:20px"></i>
+        </button>
+        <h2 id="page-title" style="font-size:1rem;font-weight:700;color:var(--text-primary);flex:1">Dashboard</h2>
+        <div style="display:flex;align-items:center;gap:12px">
+          <button class="btn btn-icon btn-ghost" aria-label="Notifications">
+            <i data-lucide="bell" style="width:18px;height:18px"></i>
+          </button>
+          <div style="display:flex;align-items:center;gap:8px">
+            <img id="user-avatar" src="https://placehold.co/32x32/4f8eff/ffffff?text=U"
+              alt="Avatar" style="width:32px;height:32px;border-radius:50%;object-fit:cover;border:2px solid var(--border)" />
+            <span id="user-name" style="font-size:.85rem;font-weight:600;color:var(--text-primary)" class="hidden md:block"></span>
+          </div>
+        </div>
+      </header>
+
+      <!-- Page content -->
+      <main style="flex:1;overflow-y:auto;padding:24px">
+
+        <!-- ═══════ DASHBOARD PAGE ═══════ -->
+        <div id="page-dashboard" class="content-page active">
+          <div style="display:flex;flex-direction:column;gap:24px;max-width:1100px;margin:0 auto">
+
+            <!-- Welcome banner -->
+            <div style="background:linear-gradient(135deg,#1e40af 0%,#4f46e5 100%);border-radius:var(--radius-xl);padding:28px 32px;color:#fff;position:relative;overflow:hidden">
+              <div style="position:absolute;right:-20px;top:-20px;width:160px;height:160px;background:rgba(255,255,255,.06);border-radius:50%"></div>
+              <div style="position:absolute;right:60px;bottom:-40px;width:100px;height:100px;background:rgba(255,255,255,.04);border-radius:50%"></div>
+              <h2 style="font-size:1.5rem;font-weight:800;margin-bottom:6px">Welcome, <span id="welcome-user-name">Student</span>! 👋</h2>
+              <p style="font-size:.9rem;opacity:.85;margin-bottom:20px">Your AI-powered academic success partner.</p>
+              <button onclick="navigateToPage('page-predictions')" class="btn" style="background:rgba(255,255,255,.15);color:#fff;border:1.5px solid rgba(255,255,255,.3);backdrop-filter:blur(4px)">
+                <i data-lucide="zap" style="width:16px;height:16px"></i> Run a Prediction
+              </button>
+            </div>
+
+            <!-- Stats grid -->
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px">
+              <div class="stat-card card-hover">
+                <div class="stat-icon" style="background:rgba(59,130,246,.12)">
+                  <i data-lucide="trending-up" style="width:20px;height:20px;color:#3b82f6"></i>
+                </div>
+                <div>
+                  <p style="font-size:.78rem;font-weight:600;color:var(--text-secondary);text-transform:uppercase;letter-spacing:.05em">Current GPA</p>
+                  <p id="current-gpa" style="font-size:1.5rem;font-weight:800;color:var(--text-primary);margin-top:2px">--</p>
+                </div>
+              </div>
+              <div class="stat-card card-hover">
+                <div class="stat-icon" style="background:rgba(16,185,129,.12)">
+                  <i data-lucide="target" style="width:20px;height:20px;color:#10b981"></i>
+                </div>
+                <div>
+                  <p style="font-size:.78rem;font-weight:600;color:var(--text-secondary);text-transform:uppercase;letter-spacing:.05em">Predicted GPA</p>
+                  <p id="predicted-gpa" style="font-size:1.5rem;font-weight:800;color:var(--text-primary);margin-top:2px">--</p>
+                </div>
+              </div>
+              <div class="stat-card card-hover">
+                <div class="stat-icon" style="background:rgba(245,158,11,.12)">
+                  <i data-lucide="clock" style="width:20px;height:20px;color:#f59e0b"></i>
+                </div>
+                <div>
+                  <p style="font-size:.78rem;font-weight:600;color:var(--text-secondary);text-transform:uppercase;letter-spacing:.05em">Study Hours</p>
+                  <p id="study-hours" style="font-size:1.5rem;font-weight:800;color:var(--text-primary);margin-top:2px">--</p>
+                </div>
+              </div>
+              <div class="stat-card card-hover">
+                <div class="stat-icon" style="background:rgba(139,92,246,.12)">
+                  <i data-lucide="shield" style="width:20px;height:20px;color:#8b5cf6"></i>
+                </div>
+                <div>
+                  <p style="font-size:.78rem;font-weight:600;color:var(--text-secondary);text-transform:uppercase;letter-spacing:.05em">Risk Level</p>
+                  <p id="risk-level" style="font-size:1.5rem;font-weight:800;color:var(--text-primary);margin-top:2px">--</p>
+                </div>
+              </div>
+            </div>
+
+            <!-- How it works + Quick start -->
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px">
+              <div class="card" style="padding:24px">
+                <h3 style="font-weight:700;font-size:1rem;margin-bottom:16px;color:var(--text-primary)">How it works</h3>
+                <div style="display:flex;flex-direction:column;gap:14px">
+                  <div style="display:flex;gap:12px;align-items:flex-start">
+                    <div style="width:28px;height:28px;border-radius:8px;background:rgba(59,130,246,.12);display:flex;align-items:center;justify-content:center;flex-shrink:0">
+                      <span style="font-size:.8rem;font-weight:700;color:#3b82f6">1</span>
+                    </div>
+                    <div><p style="font-weight:600;font-size:.875rem;color:var(--text-primary)">Input your data</p><p style="font-size:.8rem;color:var(--text-secondary)">Grades, attendance, study hours &amp; more</p></div>
+                  </div>
+                  <div style="display:flex;gap:12px;align-items:flex-start">
+                    <div style="width:28px;height:28px;border-radius:8px;background:rgba(139,92,246,.12);display:flex;align-items:center;justify-content:center;flex-shrink:0">
+                      <span style="font-size:.8rem;font-weight:700;color:#8b5cf6">2</span>
+                    </div>
+                    <div><p style="font-weight:600;font-size:.875rem;color:var(--text-primary)">AI Prediction</p><p style="font-size:.8rem;color:var(--text-secondary)">XGBoost model predicts risk &amp; score</p></div>
+                  </div>
+                  <div style="display:flex;gap:12px;align-items:flex-start">
+                    <div style="width:28px;height:28px;border-radius:8px;background:rgba(16,185,129,.12);display:flex;align-items:center;justify-content:center;flex-shrink:0">
+                      <span style="font-size:.8rem;font-weight:700;color:#10b981">3</span>
+                    </div>
+                    <div><p style="font-weight:600;font-size:.875rem;color:var(--text-primary)">Get Guidance</p><p style="font-size:.8rem;color:var(--text-secondary)">Personalized tips, plan &amp; resources</p></div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="card" style="padding:24px;display:flex;flex-direction:column;gap:12px">
+                <h3 style="font-weight:700;font-size:1rem;margin-bottom:4px;color:var(--text-primary)">Quick Actions</h3>
+                <button id="go-to-predictions" class="btn btn-primary btn-full">
+                  <i data-lucide="bar-chart-2" style="width:16px;height:16px"></i> Make a Prediction
+                </button>
+                <button id="go-to-study-materials" class="btn btn-secondary btn-full">
+                  <i data-lucide="book-open" style="width:16px;height:16px"></i> Browse Resources
+                </button>
+                <button onclick="navigateToPage('page-recommendations')" class="btn btn-ghost btn-full">
+                  <i data-lucide="lightbulb" style="width:16px;height:16px"></i> View Recommendations
+                </button>
+              </div>
+            </div>
+
+            <!-- Recent activity -->
+            <div class="card" style="padding:24px">
+              <h3 style="font-weight:700;font-size:1rem;margin-bottom:16px;color:var(--text-primary)">Recent Activity</h3>
+              <div id="recent-activity" style="display:flex;flex-direction:column;gap:8px">
+                <div class="skeleton" style="height:44px;width:100%"></div>
+                <div class="skeleton" style="height:44px;width:100%"></div>
+                <div class="skeleton" style="height:44px;width:80%"></div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- ═══════ PREDICTIONS PAGE ═══════ -->
+        <div id="page-predictions" class="content-page">
+          <div style="max-width:960px;margin:0 auto;display:flex;flex-direction:column;gap:20px">
+
+            <!-- Info banner -->
+            <div style="background:rgba(59,130,246,.06);border:1px solid rgba(59,130,246,.15);border-radius:var(--radius-lg);padding:16px 20px;display:flex;gap:12px;align-items:flex-start">
+              <i data-lucide="info" style="width:18px;height:18px;color:var(--accent);flex-shrink:0;margin-top:2px"></i>
+              <div>
+                <p style="font-weight:600;font-size:.875rem;color:var(--text-primary);margin-bottom:2px">About the Prediction Model</p>
+                <p style="font-size:.82rem;color:var(--text-secondary)">Our XGBoost model is trained on real student data. Fill in your academic profile and personal details to get an accurate performance prediction and risk assessment.</p>
+              </div>
+            </div>
+
+            <div class="card" style="padding:28px">
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:24px;flex-wrap:wrap;gap:12px">
+                <h3 style="font-size:1.1rem;font-weight:700;color:var(--text-primary)">Student Profile</h3>
+                <button id="fill-sample-data-btn" class="btn btn-ghost btn-sm">
+                  <i data-lucide="sparkles" style="width:14px;height:14px"></i> Fill Sample Data
+                </button>
+              </div>
+              <form style="display:flex;flex-direction:column;gap:24px">
+
+                <!-- Academic section -->
+                <div>
+                  <p style="font-size:.75rem;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:.08em;margin-bottom:14px">📚 Academic Information</p>
+                  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px">
+                    <div>
+                      <label class="field-label">Previous GPA (0–4.0)</label>
+                      <input name="previousGpa" type="number" step="0.1" min="0" max="4" placeholder="e.g. 3.2" class="input-field" />
+                      <p class="field-hint">0.0 (F) → 4.0 (A+)</p>
+                    </div>
+                    <div>
+                      <label class="field-label">Attendance %</label>
+                      <input name="attendance" type="number" min="0" max="100" placeholder="e.g. 92" class="input-field" />
+                      <p class="field-hint">0% to 100%</p>
+                    </div>
+                    <div>
+                      <label class="field-label">Assignments Completed %</label>
+                      <input name="assignmentsCompleted" type="number" min="0" max="100" placeholder="e.g. 85" class="input-field" />
+                      <p class="field-hint">0% to 100%</p>
+                    </div>
+                    <div>
+                      <label class="field-label">Weekly Study Hours</label>
+                      <input name="studyHours" type="number" min="0" max="25" placeholder="e.g. 10" class="input-field" />
+                      <p class="field-hint">0 to 25 hrs/week</p>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Subject scores -->
+                <div>
+                  <p style="font-size:.75rem;font-weight:700;color:#10b981;text-transform:uppercase;letter-spacing:.08em;margin-bottom:14px">📝 Subject Scores (0–100)</p>
+                  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:16px">
+                    <div>
+                      <label class="field-label">Math Score</label>
+                      <input name="mathScore" type="number" min="0" max="100" placeholder="e.g. 85" class="input-field" />
+                    </div>
+                    <div>
+                      <label class="field-label">Science Score</label>
+                      <input name="scienceScore" type="number" min="0" max="100" placeholder="e.g. 88" class="input-field" />
+                    </div>
+                    <div>
+                      <label class="field-label">English Score</label>
+                      <input name="englishScore" type="number" min="0" max="100" placeholder="e.g. 90" class="input-field" />
+                    </div>
+                    <div>
+                      <label class="field-label">History Score</label>
+                      <input name="historyScore" type="number" min="0" max="100" placeholder="e.g. 82" class="input-field" />
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Personal info -->
+                <div>
+                  <p style="font-size:.75rem;font-weight:700;color:#8b5cf6;text-transform:uppercase;letter-spacing:.08em;margin-bottom:14px">👤 Personal Information</p>
+                  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px">
+                    <div>
+                      <label class="field-label">Age (16–18)</label>
+                      <input name="age" type="number" min="16" max="18" placeholder="e.g. 17" class="input-field" />
+                    </div>
+                    <div>
+                      <label class="field-label">Gender</label>
+                      <select name="gender" class="input-field">
+                        <option value="1">Male</option>
+                        <option value="0">Female</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label class="field-label">Parental Education</label>
+                      <select name="parentalEducation" class="input-field">
+                        <option value="0">None</option>
+                        <option value="1">Primary School</option>
+                        <option value="2">Middle School</option>
+                        <option value="3">High School</option>
+                        <option value="4">Bachelor's Degree</option>
+                        <option value="5">Master's or Higher</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label class="field-label">Socio-Economic Status</label>
+                      <select name="socioEconomicStatus" class="input-field">
+                        <option value="Low">Low</option>
+                        <option value="Medium" selected>Medium</option>
+                        <option value="High">High</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label class="field-label">Extracurricular Activities</label>
+                      <select name="extracurricularActivities" class="input-field">
+                        <option value="0">None</option>
+                        <option value="1">1–2 Activities</option>
+                        <option value="2">3 or more</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label class="field-label">Has Private Tutor</label>
+                      <select name="hasTutor" class="input-field">
+                        <option value="0">No</option>
+                        <option value="1">Yes</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label class="field-label">Travel Time (minutes)</label>
+                      <input name="travelTime" type="number" min="5" max="120" placeholder="e.g. 20" class="input-field" />
+                      <p class="field-hint">One-way to school</p>
+                    </div>
+                    <div>
+                      <label class="field-label">Internet Access at Home</label>
+                      <select name="internetAccess" class="input-field">
+                        <option value="1">Yes</option>
+                        <option value="0">No</option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Action buttons -->
+                <div style="display:flex;gap:12px;flex-wrap:wrap;padding-top:8px;border-top:1px solid var(--border)">
+                  <button type="button" id="run-prediction-btn" class="btn btn-primary btn-lg" style="flex:1;min-width:200px">
+                    <span id="prediction-text">Predict Performance</span>
+                    <span id="prediction-loading" class="spinner hidden"></span>
+                    <i data-lucide="arrow-right" style="width:18px;height:18px"></i>
+                  </button>
+                </div>
+
+                <!-- Inline result (shown after prediction) -->
+                <div id="simple-result" class="hidden card fade-in" style="padding:20px">
+                  <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px">
+                    <div>
+                      <p style="font-size:.78rem;font-weight:600;color:var(--text-secondary);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px">Predicted Score</p>
+                      <p id="simple-prediction-score" style="font-size:2.2rem;font-weight:800;color:var(--accent)">--%</p>
+                    </div>
+                    <div style="text-align:right">
+                      <p style="font-size:.78rem;font-weight:600;color:var(--text-secondary);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px">Risk Category</p>
+                      <span id="simple-risk-chip" class="badge badge-gray" style="font-size:.85rem;padding:5px 14px">--</span>
+                    </div>
+                  </div>
+                </div>
+
+              </form>
+            </div>
+
+            <!-- Detailed result card -->
+            <div class="card" style="padding:28px">
+              <h3 style="font-size:1.1rem;font-weight:700;color:var(--text-primary);margin-bottom:20px;text-align:center">Prediction Result</h3>
+              <div style="background:var(--bg-subtle);border-radius:var(--radius-lg);padding:28px;text-align:center">
+
+                <!-- Score ring -->
+                <div class="score-ring-wrap" style="margin-bottom:16px">
+                  <svg width="130" height="130" viewBox="0 0 130 130">
+                    <circle cx="65" cy="65" r="52" fill="none" stroke="var(--border)" stroke-width="10"/>
+                    <circle id="score-ring-progress" cx="65" cy="65" r="52" fill="none" stroke="var(--accent)"
+                      stroke-width="10" stroke-linecap="round"
+                      style="stroke-dasharray:326.7;stroke-dashoffset:326.7;transform:rotate(-90deg);transform-origin:65px 65px;transition:stroke-dashoffset .8s ease,stroke .4s"/>
+                  </svg>
+                  <div class="score-text">
+                    <p id="predicted-score-label" style="font-size:1.6rem;font-weight:800;color:var(--text-primary);line-height:1">--%</p>
+                    <p style="font-size:.72rem;color:var(--text-muted);margin-top:2px">Score</p>
+                  </div>
+                </div>
+
+                <div id="risk-level-label" style="display:inline-flex;align-items:center;gap:7px;padding:7px 18px;border-radius:99px;font-size:.9rem;font-weight:600;margin-bottom:16px;background:var(--bg-card);border:1px solid var(--border)">
+                  <span id="risk-level-dot" style="width:8px;height:8px;border-radius:50%;background:var(--text-muted)"></span>
+                  <span id="risk-level-text">Run a prediction</span>
+                </div>
+
+                <div class="card" style="padding:14px 18px;margin-bottom:20px;text-align:left">
+                  <p style="font-size:.8rem;font-weight:600;color:var(--text-secondary);margin-bottom:6px">Performance Insight</p>
+                  <p id="performance-insight" style="font-size:.875rem;color:var(--text-primary)">Submit the form above to see personalized insights.</p>
+                </div>
+
+                <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px">
+                  <div class="card" style="padding:14px;text-align:center">
+                    <p id="high-risk-percent" style="font-size:1.4rem;font-weight:800;color:#ef4444">--%</p>
+                    <p style="font-size:.75rem;color:var(--text-muted);margin-top:2px">High Risk</p>
+                  </div>
+                  <div class="card" style="padding:14px;text-align:center">
+                    <p id="medium-risk-percent" style="font-size:1.4rem;font-weight:800;color:#f59e0b">--%</p>
+                    <p style="font-size:.75rem;color:var(--text-muted);margin-top:2px">Medium Risk</p>
+                  </div>
+                  <div class="card" style="padding:14px;text-align:center">
+                    <p id="low-risk-percent" style="font-size:1.4rem;font-weight:800;color:#10b981">--%</p>
+                    <p style="font-size:.75rem;color:var(--text-muted);margin-top:2px">Low Risk</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Typical ranges reference -->
+            <div class="card" style="padding:20px">
+              <p style="font-size:.78rem;font-weight:700;color:var(--text-secondary);text-transform:uppercase;letter-spacing:.06em;margin-bottom:12px">💡 Typical Ranges (Based on Training Data)</p>
+              <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:8px;font-size:.82rem;color:var(--text-secondary)">
+                <div><strong style="color:var(--text-primary)">GPA:</strong> 2.0–4.0 (avg 3.1)</div>
+                <div><strong style="color:var(--text-primary)">Attendance:</strong> 70–100% (avg 89%)</div>
+                <div><strong style="color:var(--text-primary)">Assignments:</strong> 55–100% (avg 87%)</div>
+                <div><strong style="color:var(--text-primary)">Study Hours:</strong> 1–20/wk (avg 9.5)</div>
+                <div><strong style="color:var(--text-primary)">Travel Time:</strong> 10–60 min (avg 28)</div>
+                <div><strong style="color:var(--text-primary)">Age:</strong> 16–18 years</div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- ═══════ STUDY MATERIALS PAGE ═══════ -->
+        <div id="page-study-materials" class="content-page">
+          <div style="max-width:1100px;margin:0 auto;display:flex;flex-direction:column;gap:20px">
+
+            <!-- Filter bar -->
+            <div class="card" style="padding:20px">
+              <div style="display:flex;flex-wrap:wrap;gap:12px">
+                <div style="flex:1;min-width:200px">
+                  <label class="field-label">Search Resources</label>
+                  <input type="text" id="search-resources" placeholder="Search by name or description…" class="input-field" />
+                </div>
+                <div style="min-width:180px">
+                  <label class="field-label">Category</label>
+                  <select id="filter-category" class="input-field">
+                    <option value="all">All Categories</option>
+                    <option value="general">General Learning</option>
+                    <option value="math">Math &amp; Science</option>
+                    <option value="programming">Programming</option>
+                    <option value="language">Languages</option>
+                    <option value="literature">Literature</option>
+                    <option value="test-prep">Test Prep</option>
+                    <option value="productivity">Productivity</option>
+                  </select>
+                </div>
+                <div style="display:flex;align-items:flex-end">
+                  <button id="reset-filters" class="btn btn-ghost">Reset</button>
+                </div>
+              </div>
+            </div>
+
+            <div id="resources-container" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px">
+
+              <!-- Cards -->
+              <div class="resource-card" data-category="general math">
+                <div style="height:100px;background:linear-gradient(135deg,#1e40af,#3b82f6);border-radius:var(--radius-md);margin-bottom:14px;display:flex;align-items:center;justify-content:center">
+                  <span style="color:#fff;font-size:1rem;font-weight:700">Khan Academy</span>
+                </div>
+                <h4 style="font-weight:700;font-size:.95rem;color:var(--text-primary);margin-bottom:6px">Khan Academy</h4>
+                <p style="font-size:.82rem;color:var(--text-secondary);flex:1;margin-bottom:14px">Free online courses, lessons &amp; practice for math, science, and more. A great resource for any subject.</p>
+                <a href="https://www.khanacademy.org/" target="_blank" rel="noopener" class="btn btn-primary btn-full btn-sm">Visit Resource</a>
+              </div>
+
+              <div class="resource-card" data-category="general productivity">
+                <div style="height:100px;background:linear-gradient(135deg,#4338ca,#6366f1);border-radius:var(--radius-md);margin-bottom:14px;display:flex;align-items:center;justify-content:center">
+                  <span style="color:#fff;font-size:1rem;font-weight:700">Quizlet</span>
+                </div>
+                <h4 style="font-weight:700;font-size:.95rem;color:var(--text-primary);margin-bottom:6px">Quizlet</h4>
+                <p style="font-size:.82rem;color:var(--text-secondary);flex:1;margin-bottom:14px">Master any subject with flashcards, learning games, and other study tools. Perfect for memorization.</p>
+                <a href="https://quizlet.com/" target="_blank" rel="noopener" class="btn btn-primary btn-full btn-sm" style="background:#4338ca">Visit Resource</a>
+              </div>
+
+              <div class="resource-card" data-category="general math">
+                <div style="height:100px;background:linear-gradient(135deg,#d97706,#f59e0b);border-radius:var(--radius-md);margin-bottom:14px;display:flex;align-items:center;justify-content:center">
+                  <span style="color:#fff;font-size:1rem;font-weight:700">Crash Course</span>
+                </div>
+                <h4 style="font-weight:700;font-size:.95rem;color:var(--text-primary);margin-bottom:6px">Crash Course</h4>
+                <p style="font-size:.82rem;color:var(--text-secondary);flex:1;margin-bottom:14px">Fun, engaging educational videos on history, science, literature and more from YouTube.</p>
+                <a href="https://www.youtube.com/@crashcourse" target="_blank" rel="noopener" class="btn btn-primary btn-full btn-sm" style="background:#d97706">Visit Resource</a>
+              </div>
+
+              <div class="resource-card" data-category="math">
+                <div style="height:100px;background:linear-gradient(135deg,#0c4a6e,#0284c7);border-radius:var(--radius-md);margin-bottom:14px;display:flex;align-items:center;justify-content:center">
+                  <span style="color:#fff;font-size:1rem;font-weight:700">PatrickJMT</span>
+                </div>
+                <h4 style="font-weight:700;font-size:.95rem;color:var(--text-primary);margin-bottom:6px">PatrickJMT</h4>
+                <p style="font-size:.82rem;color:var(--text-secondary);flex:1;margin-bottom:14px">Free math videos covering calculus, algebra, and more. Clear explanations for complex mathematical concepts.</p>
+                <a href="http://patrickjmt.com/" target="_blank" rel="noopener" class="btn btn-primary btn-full btn-sm" style="background:#0c4a6e">Visit Resource</a>
+              </div>
+
+              <div class="resource-card" data-category="language">
+                <div style="height:100px;background:linear-gradient(135deg,#9d174d,#ec4899);border-radius:var(--radius-md);margin-bottom:14px;display:flex;align-items:center;justify-content:center">
+                  <span style="color:#fff;font-size:1rem;font-weight:700">Memrise</span>
+                </div>
+                <h4 style="font-weight:700;font-size:.95rem;color:var(--text-primary);margin-bottom:6px">Memrise</h4>
+                <p style="font-size:.82rem;color:var(--text-secondary);flex:1;margin-bottom:14px">Learn languages with native speakers. Interactive videos make language learning fun and effective.</p>
+                <a href="https://www.memrise.com/" target="_blank" rel="noopener" class="btn btn-primary btn-full btn-sm" style="background:#9d174d">Visit Resource</a>
+              </div>
+
+              <div class="resource-card" data-category="literature">
+                <div style="height:100px;background:linear-gradient(135deg,#4338ca,#818cf8);border-radius:var(--radius-md);margin-bottom:14px;display:flex;align-items:center;justify-content:center">
+                  <span style="color:#fff;font-size:1rem;font-weight:700">CliffsNotes</span>
+                </div>
+                <h4 style="font-weight:700;font-size:.95rem;color:var(--text-primary);margin-bottom:6px">CliffsNotes</h4>
+                <p style="font-size:.82rem;color:var(--text-secondary);flex:1;margin-bottom:14px">Study guides for literature, science, and more. Quick summaries and analysis to boost comprehension.</p>
+                <a href="https://www.cliffsnotes.com/" target="_blank" rel="noopener" class="btn btn-primary btn-full btn-sm" style="background:#4338ca">Visit Resource</a>
+              </div>
+
+              <div class="resource-card" data-category="general">
+                <div style="height:100px;background:linear-gradient(135deg,#065f46,#10b981);border-radius:var(--radius-md);margin-bottom:14px;display:flex;align-items:center;justify-content:center">
+                  <span style="color:#fff;font-size:1rem;font-weight:700">TED-Ed</span>
+                </div>
+                <h4 style="font-weight:700;font-size:.95rem;color:var(--text-primary);margin-bottom:6px">TED-Ed</h4>
+                <p style="font-size:.82rem;color:var(--text-secondary);flex:1;margin-bottom:14px">Educational animated videos on diverse topics to spark curiosity and deeper understanding.</p>
+                <a href="https://ed.ted.com/" target="_blank" rel="noopener" class="btn btn-primary btn-full btn-sm" style="background:#065f46">Visit Resource</a>
+              </div>
+
+              <div class="resource-card" data-category="programming">
+                <div style="height:100px;background:linear-gradient(135deg,#0f172a,#334155);border-radius:var(--radius-md);margin-bottom:14px;display:flex;align-items:center;justify-content:center">
+                  <span style="color:#fff;font-size:1rem;font-weight:700">GitHub</span>
+                </div>
+                <h4 style="font-weight:700;font-size:.95rem;color:var(--text-primary);margin-bottom:6px">GitHub</h4>
+                <p style="font-size:.82rem;color:var(--text-secondary);flex:1;margin-bottom:14px">World's leading software development platform. Learn from open source and collaborate with developers.</p>
+                <a href="https://github.com/" target="_blank" rel="noopener" class="btn btn-primary btn-full btn-sm" style="background:#0f172a">Visit Resource</a>
+              </div>
+
+              <div class="resource-card" data-category="test-prep">
+                <div style="height:100px;background:linear-gradient(135deg,#075985,#0ea5e9);border-radius:var(--radius-md);margin-bottom:14px;display:flex;align-items:center;justify-content:center">
+                  <span style="color:#fff;font-size:1rem;font-weight:700">Khan Academy SAT</span>
+                </div>
+                <h4 style="font-weight:700;font-size:.95rem;color:var(--text-primary);margin-bottom:6px">Khan Academy SAT</h4>
+                <p style="font-size:.82rem;color:var(--text-secondary);flex:1;margin-bottom:14px">Official SAT practice in partnership with College Board. Free personalized prep with full-length tests.</p>
+                <a href="https://www.khanacademy.org/sat" target="_blank" rel="noopener" class="btn btn-primary btn-full btn-sm" style="background:#075985">Visit Resource</a>
+              </div>
+
+              <div class="resource-card" data-category="productivity">
+                <div style="height:100px;background:linear-gradient(135deg,#991b1b,#ef4444);border-radius:var(--radius-md);margin-bottom:14px;display:flex;align-items:center;justify-content:center">
+                  <span style="color:#fff;font-size:1rem;font-weight:700">Pomofocus</span>
+                </div>
+                <h4 style="font-weight:700;font-size:.95rem;color:var(--text-primary);margin-bottom:6px">Pomofocus</h4>
+                <p style="font-size:.82rem;color:var(--text-secondary);flex:1;margin-bottom:14px">Customizable Pomodoro timer to boost productivity. Break work into focused intervals with short breaks.</p>
+                <a href="https://pomofocus.io/" target="_blank" rel="noopener" class="btn btn-primary btn-full btn-sm" style="background:#991b1b">Visit Resource</a>
+              </div>
+
+              <div class="resource-card" data-category="math">
+                <div style="height:100px;background:linear-gradient(135deg,#14532d,#22c55e);border-radius:var(--radius-md);margin-bottom:14px;display:flex;align-items:center;justify-content:center">
+                  <span style="color:#fff;font-size:1rem;font-weight:700">3Blue1Brown</span>
+                </div>
+                <h4 style="font-weight:700;font-size:.95rem;color:var(--text-primary);margin-bottom:6px">3Blue1Brown</h4>
+                <p style="font-size:.82rem;color:var(--text-secondary);flex:1;margin-bottom:14px">Animated math videos with visual explanations. Deep dives into calculus, linear algebra, and more.</p>
+                <a href="https://www.3blue1brown.com/" target="_blank" rel="noopener" class="btn btn-primary btn-full btn-sm" style="background:#14532d">Visit Resource</a>
+              </div>
+
+              <div class="resource-card" data-category="programming">
+                <div style="height:100px;background:linear-gradient(135deg,#0f766e,#2dd4bf);border-radius:var(--radius-md);margin-bottom:14px;display:flex;align-items:center;justify-content:center">
+                  <span style="color:#fff;font-size:1rem;font-weight:700">W3Schools</span>
+                </div>
+                <h4 style="font-weight:700;font-size:.95rem;color:var(--text-primary);margin-bottom:6px">W3Schools</h4>
+                <p style="font-size:.82rem;color:var(--text-secondary);flex:1;margin-bottom:14px">Web development tutorials and references. Learn HTML, CSS, JavaScript with interactive examples.</p>
+                <a href="https://www.w3schools.com/" target="_blank" rel="noopener" class="btn btn-primary btn-full btn-sm" style="background:#0f766e">Visit Resource</a>
+              </div>
+
+            </div>
+          </div>
+        </div>
+
+        <!-- ═══════ RECOMMENDATIONS PAGE ═══════ -->
+        <div id="page-recommendations" class="content-page">
+          <div style="max-width:960px;margin:0 auto;display:flex;flex-direction:column;gap:20px">
+
+            <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:12px">
+              <div>
+                <h2 style="font-size:1.2rem;font-weight:800;color:var(--text-primary)">Personalized Recommendations</h2>
+                <p style="font-size:.85rem;color:var(--text-secondary);margin-top:4px">Smart tips and a weekly plan based on your latest prediction</p>
+              </div>
+              <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+                <span id="recs-risk-chip" class="badge badge-gray">No prediction yet</span>
+                <button id="recs-refresh" class="btn btn-primary btn-sm">
+                  <i data-lucide="refresh-cw" style="width:14px;height:14px"></i> Refresh
+                </button>
+              </div>
+            </div>
+
+            <div id="recs-list" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px">
+              <div class="card" style="padding:20px;text-align:center;grid-column:1/-1;color:var(--text-muted)">
+                <i data-lucide="lightbulb" style="width:40px;height:40px;display:block;margin:0 auto 10px;opacity:.4"></i>
+                <p style="font-size:.875rem">Make a prediction first to get personalized recommendations.</p>
+                <button onclick="navigateToPage('page-predictions')" class="btn btn-primary btn-sm" style="margin-top:14px">Go to Predictions</button>
+              </div>
+            </div>
+
+            <div id="recs-plan" class="card hidden" style="padding:22px">
+              <h3 style="font-weight:700;font-size:1rem;color:var(--text-primary);margin-bottom:14px">
+                <span style="color:var(--accent)">📅</span> 7-Day Action Plan
+              </h3>
+              <div id="recs-plan-days" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:10px"></div>
+              <p id="recs-empty-note" style="font-size:.82rem;color:var(--text-muted);margin-top:10px">Make a prediction to see your plan here.</p>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- ═══════ REPORTS PAGE ═══════ -->
+        <div id="page-reports" class="content-page">
+          <div style="max-width:860px;margin:0 auto;display:flex;flex-direction:column;gap:20px">
+
+            <!-- Header -->
+            <div style="background:linear-gradient(135deg,#2563eb,#4f46e5);border-radius:var(--radius-xl);padding:24px 28px;color:#fff">
+              <h2 style="font-size:1.3rem;font-weight:800;margin-bottom:4px">📊 Performance Report</h2>
+              <p style="font-size:.875rem;opacity:.85">Comprehensive analysis with predicted score and personalized recommendations</p>
+            </div>
+
+            <!-- Actions -->
+            <div style="display:flex;gap:10px;flex-wrap:wrap" class="print-hidden">
+              <button id="generate-report-btn" class="btn btn-primary" style="flex:1;min-width:160px">
+                <i data-lucide="file-text" style="width:16px;height:16px"></i> Generate Report
+              </button>
+              <button id="print-report-btn" class="btn btn-ghost">
+                <i data-lucide="printer" style="width:16px;height:16px"></i> Print
+              </button>
+              <button id="download-report-btn" class="btn btn-success">
+                <i data-lucide="download" style="width:16px;height:16px"></i> Download PDF
+              </button>
+            </div>
+
+            <!-- Report content (hidden until generated) -->
+            <div id="report-content" class="hidden" style="display:flex;flex-direction:column;gap:16px">
+
+              <!-- Report header -->
+              <div class="card" style="padding:22px">
+                <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:12px">
+                  <div>
+                    <h3 style="font-weight:700;font-size:1rem;color:var(--text-primary)">Student Performance Report</h3>
+                    <p id="report-date" style="font-size:.82rem;color:var(--text-secondary);margin-top:4px">Generated on: --</p>
+                  </div>
+                  <div style="text-align:right">
+                    <p style="font-size:.75rem;color:var(--text-muted)">Student</p>
+                    <p id="report-student-name" style="font-weight:700;color:var(--text-primary)">--</p>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Prediction summary -->
+              <div class="card" style="padding:22px">
+                <h4 style="font-weight:700;font-size:.95rem;color:var(--text-primary);margin-bottom:16px;display:flex;align-items:center;gap:8px">
+                  <i data-lucide="target" style="width:16px;height:16px;color:var(--accent)"></i> Performance Prediction
+                </h4>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+                  <div style="background:var(--bg-subtle);border-radius:var(--radius-md);padding:18px;text-align:center">
+                    <p style="font-size:.78rem;color:var(--text-secondary);margin-bottom:6px">Predicted Score</p>
+                    <p id="report-score" style="font-size:2.4rem;font-weight:800;color:var(--accent)">--%</p>
+                  </div>
+                  <div style="background:var(--bg-subtle);border-radius:var(--radius-md);padding:18px;text-align:center">
+                    <p style="font-size:.78rem;color:var(--text-secondary);margin-bottom:10px">Risk Category</p>
+                    <div id="report-risk-badge" class="badge badge-gray" style="font-size:.9rem;padding:6px 18px">--</div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Risk analysis -->
+              <div class="card" style="padding:22px">
+                <h4 style="font-weight:700;font-size:.95rem;color:var(--text-primary);margin-bottom:16px;display:flex;align-items:center;gap:8px">
+                  <i data-lucide="pie-chart" style="width:16px;height:16px;color:#8b5cf6"></i> Risk Analysis
+                </h4>
+                <div style="display:flex;flex-direction:column;gap:12px">
+                  <div>
+                    <div style="display:flex;justify-content:space-between;margin-bottom:5px">
+                      <span style="font-size:.85rem;color:var(--text-primary)">High Risk</span>
+                      <span id="report-high-risk" style="font-size:.85rem;font-weight:700;color:#ef4444">--%</span>
+                    </div>
+                    <div class="progress-track"><div id="report-high-risk-bar" class="progress-fill" style="width:0%;background:#ef4444"></div></div>
+                  </div>
+                  <div>
+                    <div style="display:flex;justify-content:space-between;margin-bottom:5px">
+                      <span style="font-size:.85rem;color:var(--text-primary)">Medium Risk</span>
+                      <span id="report-medium-risk" style="font-size:.85rem;font-weight:700;color:#f59e0b">--%</span>
+                    </div>
+                    <div class="progress-track"><div id="report-medium-risk-bar" class="progress-fill" style="width:0%;background:#f59e0b"></div></div>
+                  </div>
+                  <div>
+                    <div style="display:flex;justify-content:space-between;margin-bottom:5px">
+                      <span style="font-size:.85rem;color:var(--text-primary)">Low Risk</span>
+                      <span id="report-low-risk" style="font-size:.85rem;font-weight:700;color:#10b981">--%</span>
+                    </div>
+                    <div class="progress-track"><div id="report-low-risk-bar" class="progress-fill" style="width:0%;background:#10b981"></div></div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Academic profile -->
+              <div class="card" style="padding:22px">
+                <h4 style="font-weight:700;font-size:.95rem;color:var(--text-primary);margin-bottom:14px;display:flex;align-items:center;gap:8px">
+                  <i data-lucide="clipboard-list" style="width:16px;height:16px;color:#10b981"></i> Academic Profile
+                </h4>
+                <div id="report-academic-inputs" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px"></div>
+              </div>
+
+              <!-- Personal profile -->
+              <div class="card" style="padding:22px">
+                <h4 style="font-weight:700;font-size:.95rem;color:var(--text-primary);margin-bottom:14px;display:flex;align-items:center;gap:8px">
+                  <i data-lucide="user" style="width:16px;height:16px;color:var(--accent)"></i> Personal Profile
+                </h4>
+                <div id="report-personal-inputs" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px"></div>
+              </div>
+
+              <!-- Recommendations -->
+              <div class="card" style="padding:22px">
+                <h4 style="font-weight:700;font-size:.95rem;color:var(--text-primary);margin-bottom:14px;display:flex;align-items:center;gap:8px">
+                  <i data-lucide="lightbulb" style="width:16px;height:16px;color:#f59e0b"></i> Personalized Recommendations
+                </h4>
+                <div id="report-recommendations" style="display:flex;flex-direction:column;gap:10px"></div>
+              </div>
+
+              <!-- Action plan -->
+              <div class="card" style="padding:22px">
+                <h4 style="font-weight:700;font-size:.95rem;color:var(--text-primary);margin-bottom:14px;display:flex;align-items:center;gap:8px">
+                  <i data-lucide="calendar" style="width:16px;height:16px;color:#8b5cf6"></i> 7-Day Action Plan
+                </h4>
+                <div id="report-action-plan" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:10px"></div>
+              </div>
+
+              <!-- Footer -->
+              <div style="text-align:center;padding:16px;font-size:.8rem;color:var(--text-muted)">
+                Generated by <strong>EduPredict AI</strong> • For educational purposes only • Predictions are based on ML analysis
+              </div>
+            </div>
+
+            <!-- Empty state -->
+            <div id="report-empty" class="card" style="padding:48px;text-align:center">
+              <i data-lucide="file-text" style="width:52px;height:52px;display:block;margin:0 auto 14px;color:var(--text-muted);opacity:.4"></i>
+              <h3 style="font-weight:700;font-size:1rem;color:var(--text-primary);margin-bottom:6px">No Report Available</h3>
+              <p style="font-size:.875rem;color:var(--text-secondary);margin-bottom:18px">Make a prediction first to generate your performance report</p>
+              <button onclick="navigateToPage('page-predictions')" class="btn btn-primary">Go to Predictions</button>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- ═══════ SUBSCRIPTION PAGE ═══════ -->
+        <div id="page-subscription" class="content-page">
+          <div style="max-width:700px;margin:0 auto;display:flex;flex-direction:column;gap:20px">
+
+            <div style="background:linear-gradient(135deg,#4f46e5,#2563eb);border-radius:var(--radius-xl);padding:24px 28px;color:#fff">
+              <h2 style="font-size:1.3rem;font-weight:800;margin-bottom:4px">Subscription</h2>
+              <p style="font-size:.875rem;opacity:.85;margin-bottom:12px">Manage your plan, check status, and access receipts.</p>
+              <div style="display:inline-flex;align-items:center;gap:8px;background:rgba(255,255,255,.12);padding:6px 14px;border-radius:99px;font-size:.82rem">
+                <span id="sub-status-dot" style="width:8px;height:8px;border-radius:50%;background:#fcd34d"></span>
+                <span id="sub-status-text">Status: Free</span>
+              </div>
+            </div>
+
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px">
+              <div class="card" style="padding:22px">
+                <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px">
+                  <h3 style="font-weight:700;color:var(--text-primary)">Free</h3>
+                  <span class="badge badge-gray">Current</span>
+                </div>
+                <p style="font-size:.85rem;color:var(--text-secondary);margin-bottom:12px">Get started with core predictions.</p>
+                <ul style="font-size:.82rem;color:var(--text-secondary);list-style:none;display:flex;flex-direction:column;gap:6px;margin-bottom:14px">
+                  <li style="display:flex;gap:7px;align-items:center"><i data-lucide="check" style="width:14px;height:14px;color:#10b981"></i>Prediction access</li>
+                  <li style="display:flex;gap:7px;align-items:center"><i data-lucide="check" style="width:14px;height:14px;color:#10b981"></i>Basic features</li>
+                </ul>
+                <p style="font-size:1.3rem;font-weight:800;color:var(--text-primary)">$0</p>
+              </div>
+
+              <div class="card" style="padding:22px;border-color:var(--accent);box-shadow:0 0 0 1px var(--accent)">
+                <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px">
+                  <h3 style="font-weight:700;color:var(--text-primary)">Premium</h3>
+                  <span class="badge badge-blue">⭐ Recommended</span>
+                </div>
+                <p style="font-size:.85rem;color:var(--text-secondary);margin-bottom:12px">Unlock full analytics and resources.</p>
+                <ul style="font-size:.82rem;color:var(--text-secondary);list-style:none;display:flex;flex-direction:column;gap:6px;margin-bottom:14px">
+                  <li style="display:flex;gap:7px;align-items:center"><i data-lucide="check" style="width:14px;height:14px;color:#10b981"></i>Reports &amp; Recommendations</li>
+                  <li style="display:flex;gap:7px;align-items:center"><i data-lucide="check" style="width:14px;height:14px;color:#10b981"></i>Study Materials</li>
+                  <li style="display:flex;gap:7px;align-items:center"><i data-lucide="check" style="width:14px;height:14px;color:#10b981"></i>Analytics Dashboard</li>
+                  <li style="display:flex;gap:7px;align-items:center"><i data-lucide="check" style="width:14px;height:14px;color:#10b981"></i>Receipts</li>
+                </ul>
+                <p style="font-size:1.3rem;font-weight:800;color:var(--text-primary)">₹499<span style="font-size:.85rem;font-weight:400;color:var(--text-secondary)">/year</span></p>
+              </div>
+            </div>
+
+            <div style="display:flex;flex-wrap:wrap;gap:10px">
+              <button id="sub-upgrade-btn" class="btn btn-primary">
+                <i data-lucide="arrow-up-circle" style="width:16px;height:16px"></i> Upgrade to Premium
+              </button>
+              <button id="sub-receipts-btn" class="btn btn-success">
+                <i data-lucide="receipt" style="width:16px;height:16px"></i> View Receipts
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- ═══════ PAYMENT PAGE ═══════ -->
+        <div id="page-payment" class="content-page">
+          <div style="max-width:480px;margin:0 auto">
+            <div class="card" style="padding:28px">
+              <h2 style="font-size:1.2rem;font-weight:800;color:var(--text-primary);margin-bottom:4px">Upgrade to Premium</h2>
+              <p style="font-size:.85rem;color:var(--text-secondary);margin-bottom:22px">This is a simulated payment page for demo only. No real charge.</p>
+              <div style="display:flex;flex-direction:column;gap:14px">
+                <div style="padding:14px;background:var(--bg-subtle);border-radius:var(--radius-md)">
+                  <p style="font-size:.78rem;color:var(--text-muted);margin-bottom:3px">Plan</p>
+                  <p id="pay-plan-text" style="font-weight:700;color:var(--text-primary)">Premium (₹499/year)</p>
+                </div>
+                <div>
+                  <label class="field-label">Payment Mode</label>
+                  <select id="payment-mode" class="input-field">
+                    <option value="UPI">UPI</option>
+                    <option value="Card">Card</option>
+                    <option value="NetBanking">NetBanking</option>
+                  </select>
+                </div>
+                <div id="card-inputs" style="display:none;grid-template-columns:1fr 1fr;gap:10px">
+                  <input id="card-name"   placeholder="Cardholder Name" class="input-field" />
+                  <input id="card-number" placeholder="Card Number (dummy)" class="input-field" />
+                  <input id="card-exp"    placeholder="MM/YY" class="input-field" />
+                  <input id="card-cvc"    placeholder="CVC" class="input-field" />
+                </div>
+                <button id="pay-btn" class="btn btn-primary btn-full btn-lg">
+                  <i data-lucide="lock" style="width:16px;height:16px"></i> Pay Now
+                </button>
+                <p id="pay-status" style="font-size:.82rem;color:var(--text-secondary);text-align:center"></p>
+              </div>
+            </div>
+            <p style="text-align:center;font-size:.75rem;color:var(--text-muted);margin-top:10px">🔒 No real payment is processed. Demo only.</p>
+          </div>
+        </div>
+
+        <!-- ═══════ PAYMENT SUCCESS PAGE ═══════ -->
+        <div id="page-payment-success" class="content-page">
+          <div style="max-width:480px;margin:0 auto">
+            <div class="card" style="padding:40px;text-align:center">
+              <div style="width:64px;height:64px;background:rgba(16,185,129,.12);border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 16px">
+                <i data-lucide="check-circle" style="width:32px;height:32px;color:#10b981"></i>
+              </div>
+              <h2 style="font-size:1.3rem;font-weight:800;color:#10b981;margin-bottom:6px">Payment Successful!</h2>
+              <p style="font-size:.875rem;color:var(--text-secondary);margin-bottom:14px">Your subscription is now active. All premium features are unlocked.</p>
+              <p id="success-status" style="font-size:.82rem;color:var(--text-muted);margin-bottom:20px">Finalizing your upgrade…</p>
+              <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap">
+                <button id="download-receipt-btn" class="btn btn-success hidden">
+                  <i data-lucide="download" style="width:15px;height:15px"></i> Download Receipt
+                </button>
+                <button id="go-dashboard-btn" class="btn btn-primary">
+                  <i data-lucide="home" style="width:15px;height:15px"></i> Go to Dashboard
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ═══════ SETTINGS PAGE ═══════ -->
+        <div id="page-settings" class="content-page">
+          <div style="max-width:720px;margin:0 auto;display:flex;flex-direction:column;gap:20px">
+
+            <!-- Profile -->
+            <div class="card" style="padding:24px">
+              <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:18px;flex-wrap:wrap;gap:10px">
+                <div>
+                  <h3 style="font-weight:700;font-size:1rem;color:var(--text-primary)">Profile Information</h3>
+                  <p style="font-size:.82rem;color:var(--text-secondary);margin-top:3px">Manage your personal and academic details</p>
+                </div>
+                <button id="edit-profile-btn" class="btn btn-ghost btn-sm">
+                  <i data-lucide="edit-2" style="width:14px;height:14px"></i> Edit
+                </button>
+              </div>
+              <form id="profile-form" style="display:flex;flex-direction:column;gap:14px">
+                <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px">
+                  <div>
+                    <label class="field-label">Full Name <span style="color:#ef4444">*</span></label>
+                    <input type="text" id="full-name" class="input-field" disabled />
+                    <div id="name-error" class="hidden" style="font-size:.75rem;color:#ef4444;margin-top:4px"></div>
+                  </div>
+                  <div>
+                    <label class="field-label">Email Address</label>
+                    <input type="email" id="user-email" class="input-field" disabled readonly />
+                    <p class="field-hint">Email cannot be changed here</p>
+                  </div>
+                  <div>
+                    <label class="field-label">School / Institution <span style="color:#ef4444">*</span></label>
+                    <input type="text" id="user-school" class="input-field" disabled />
+                    <div id="school-error" class="hidden" style="font-size:.75rem;color:#ef4444;margin-top:4px"></div>
+                  </div>
+                  <div>
+                    <label class="field-label">Grade Level <span style="color:#ef4444">*</span></label>
+                    <select id="user-grade" class="input-field" disabled>
+                      <option value="">Select Grade</option>
+                      <option value="9">9th Grade</option>
+                      <option value="10">10th Grade</option>
+                      <option value="11">11th Grade</option>
+                      <option value="12">12th Grade</option>
+                    </select>
+                    <div id="grade-error" class="hidden" style="font-size:.75rem;color:#ef4444;margin-top:4px"></div>
+                  </div>
+                  <div>
+                    <label class="field-label">Student ID</label>
+                    <input type="text" id="student-id" class="input-field" disabled placeholder="Optional" />
+                  </div>
+                  <div>
+                    <label class="field-label">Phone Number</label>
+                    <input type="tel" id="phone-number" class="input-field" disabled placeholder="Optional" />
+                  </div>
+                </div>
+                <div id="profile-btns" class="hidden" style="display:flex;justify-content:flex-end;gap:10px;padding-top:6px;border-top:1px solid var(--border)">
+                  <button type="button" id="cancel-profile-edit" class="btn btn-ghost btn-sm">Cancel</button>
+                  <button type="submit" class="btn btn-primary btn-sm">
+                    <i data-lucide="save" style="width:14px;height:14px"></i> Save Changes
+                  </button>
+                </div>
+              </form>
+            </div>
+
+            <!-- Appearance -->
+            <div class="card" style="padding:24px">
+              <h3 style="font-weight:700;font-size:1rem;color:var(--text-primary);margin-bottom:18px">Appearance</h3>
+              <div style="display:flex;flex-direction:column;gap:16px">
+                <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px">
+                  <div>
+                    <p style="font-weight:600;font-size:.875rem;color:var(--text-primary)">Theme Mode</p>
+                    <p style="font-size:.8rem;color:var(--text-secondary)">Choose your preferred colour scheme</p>
+                  </div>
+                  <div style="display:flex;gap:14px">
+                    <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:.875rem;color:var(--text-primary)">
+                      <input type="radio" name="theme-mode" value="light" id="theme-light" /> Light
+                    </label>
+                    <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:.875rem;color:var(--text-primary)">
+                      <input type="radio" name="theme-mode" value="dark" id="theme-dark" /> Dark
+                    </label>
+                    <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:.875rem;color:var(--text-primary)">
+                      <input type="radio" name="theme-mode" value="auto" id="theme-auto" checked /> Auto
+                    </label>
+                  </div>
+                </div>
+                <div style="display:flex;justify-content:space-between;align-items:center;padding-top:12px;border-top:1px solid var(--border)">
+                  <div>
+                    <p style="font-weight:600;font-size:.875rem;color:var(--text-primary)">Font Size</p>
+                    <p style="font-size:.8rem;color:var(--text-secondary)">Adjust text size for readability</p>
+                  </div>
+                  <div style="display:flex;align-items:center;gap:10px">
+                    <button id="font-decrease" class="btn btn-icon btn-ghost"><i data-lucide="minus" style="width:14px;height:14px"></i></button>
+                    <span id="font-size-display" style="font-size:.875rem;font-weight:600;color:var(--text-primary);min-width:36px;text-align:center">16px</span>
+                    <button id="font-increase" class="btn btn-icon btn-ghost"><i data-lucide="plus" style="width:14px;height:14px"></i></button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Account Management -->
+            <div class="card" style="padding:24px">
+              <h3 style="font-weight:700;font-size:1rem;color:var(--text-primary);margin-bottom:18px">Account Management</h3>
+              <div style="display:flex;flex-direction:column;gap:10px">
+                <p style="font-size:.78rem;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.06em">Security</p>
+
+                <button id="change-password-btn" class="card" style="padding:14px;text-align:left;cursor:pointer;border:1px solid var(--border);background:var(--bg-card);width:100%">
+                  <div style="display:flex;justify-content:space-between;align-items:center">
+                    <div>
+                      <p style="font-weight:600;font-size:.875rem;color:var(--text-primary)">Change Password</p>
+                      <p style="font-size:.8rem;color:var(--text-secondary)">Update your account password</p>
+                    </div>
+                    <i data-lucide="key" style="width:16px;height:16px;color:var(--text-muted)"></i>
+                  </div>
+                </button>
+
+                <button id="two-factor-btn" class="card" style="padding:14px;text-align:left;cursor:pointer;border:1px solid var(--border);background:var(--bg-card);width:100%">
+                  <div style="display:flex;justify-content:space-between;align-items:center">
+                    <div>
+                      <p style="font-weight:600;font-size:.875rem;color:var(--text-primary)">Two-Factor Authentication</p>
+                      <p style="font-size:.8rem;color:var(--text-secondary)">Add extra security to your account</p>
+                    </div>
+                    <i data-lucide="shield" style="width:16px;height:16px;color:var(--text-muted)"></i>
+                  </div>
+                </button>
+
+                <p style="font-size:.78rem;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.06em;margin-top:6px">Data</p>
+
+                <button id="export-data-btn" class="card" style="padding:14px;text-align:left;cursor:pointer;border:1px solid var(--border);background:var(--bg-card);width:100%">
+                  <div style="display:flex;justify-content:space-between;align-items:center">
+                    <div>
+                      <p style="font-weight:600;font-size:.875rem;color:var(--text-primary)">Export Your Data</p>
+                      <p style="font-size:.8rem;color:var(--text-secondary)">Download all your data as JSON</p>
+                    </div>
+                    <i data-lucide="download" style="width:16px;height:16px;color:var(--text-muted)"></i>
+                  </div>
+                </button>
+
+                <p style="font-size:.78rem;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.06em;margin-top:6px">Danger Zone</p>
+
+                <button id="deactivate-account-btn" class="card" style="padding:14px;text-align:left;cursor:pointer;border:1px solid var(--border);background:var(--bg-card);width:100%">
+                  <div style="display:flex;justify-content:space-between;align-items:center">
+                    <div>
+                      <p style="font-weight:600;font-size:.875rem;color:var(--text-primary)">Deactivate Account</p>
+                      <p style="font-size:.8rem;color:var(--text-secondary)">Temporarily disable your account</p>
+                    </div>
+                    <i data-lucide="pause-circle" style="width:16px;height:16px;color:var(--text-muted)"></i>
+                  </div>
+                </button>
+
+                <button id="delete-account-btn" class="card" style="padding:14px;text-align:left;cursor:pointer;border:1px solid rgba(239,68,68,.3);background:rgba(239,68,68,.04);width:100%">
+                  <div style="display:flex;justify-content:space-between;align-items:center">
+                    <div>
+                      <p style="font-weight:600;font-size:.875rem;color:#ef4444">Delete Account</p>
+                      <p style="font-size:.8rem;color:#f87171">Permanently delete your account and all data</p>
+                    </div>
+                    <i data-lucide="trash-2" style="width:16px;height:16px;color:#ef4444"></i>
+                  </div>
+                </button>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- Placeholder pages -->
+        <div id="page-categories" class="content-page"><div class="card" style="padding:40px;text-align:center;max-width:400px;margin:40px auto"><p style="color:var(--text-muted)">Categories coming soon.</p></div></div>
+        <div id="page-export-reports" class="content-page"><div class="card" style="padding:40px;text-align:center;max-width:400px;margin:40px auto"><p style="color:var(--text-muted)">Export Reports (Teacher Only) coming soon.</p></div></div>
+
+      </main>
+    </div><!-- end main area -->
+  </div><!-- end flex row -->
+
+  <!-- ═══ Chatbot ═══ -->
+  <div id="chatbot-container" style="position:fixed;bottom:24px;right:24px">
+    <button id="chatbot-toggle" aria-label="Open chat">
+      <i data-lucide="message-circle" style="width:24px;height:24px"></i>
+    </button>
+    <div id="chatbot-window" class="hidden">
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:14px 16px;background:var(--accent);color:#fff;border-radius:var(--radius-xl) var(--radius-xl) 0 0">
+        <div style="display:flex;align-items:center;gap:8px">
+          <i data-lucide="bot" style="width:16px;height:16px"></i>
+          <span style="font-weight:700;font-size:.9rem">EduPredict Bot</span>
+        </div>
+        <button id="chatbot-close" style="background:none;border:none;color:#fff;cursor:pointer;padding:2px">
+          <i data-lucide="x" style="width:16px;height:16px"></i>
+        </button>
+      </div>
+      <div id="chatbot-messages" style="flex:1;padding:14px;overflow-y:auto;display:flex;flex-direction:column;gap:10px">
+        <div style="display:flex">
+          <div class="chat-bubble-bot">Hello! How can I help you today? Ask about study help, predictions, or FAQs. 👋</div>
+        </div>
+      </div>
+      <div style="padding:12px;border-top:1px solid var(--border)">
+        <div id="chatbot-quick" style="display:flex;gap:6px;overflow-x:auto;margin-bottom:8px;padding-bottom:2px" class="no-scrollbar"></div>
+        <div style="position:relative">
+          <input id="chatbot-input" type="text" placeholder="Type a message…"
+            style="width:100%;background:var(--bg-subtle);border:1.5px solid var(--border);border-radius:99px;padding:8px 44px 8px 14px;font-size:.85rem;color:var(--text-primary);outline:none;font-family:inherit" />
+          <button id="chatbot-send" aria-label="Send"
+            style="position:absolute;right:5px;top:50%;transform:translateY(-50%);width:30px;height:30px;background:var(--accent);border:none;border-radius:50%;color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center">
+            <i data-lucide="send" style="width:13px;height:13px"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div><!-- end dashboard-main -->
+
+<!-- ═══ Modals ═══ -->
+
+<!-- Change Password -->
+<div id="change-password-modal" class="modal-backdrop hidden">
+  <div class="modal-box" style="padding:24px">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:18px">
+      <h3 style="font-weight:700;color:var(--text-primary)">Change Password</h3>
+      <button id="close-password-modal" class="btn btn-icon btn-ghost"><i data-lucide="x" style="width:16px;height:16px"></i></button>
+    </div>
+    <form id="change-password-form" style="display:flex;flex-direction:column;gap:12px">
+      <div><label class="field-label">Current Password</label><input type="password" id="current-password" class="input-field" required /></div>
+      <div><label class="field-label">New Password</label><input type="password" id="new-password" class="input-field" required /></div>
+      <div><label class="field-label">Confirm New Password</label><input type="password" id="confirm-password" class="input-field" required /></div>
+      <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:4px">
+        <button type="button" id="cancel-password-change" class="btn btn-ghost btn-sm">Cancel</button>
+        <button type="submit" class="btn btn-primary btn-sm">Update Password</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- 2FA -->
+<div id="two-factor-modal" class="modal-backdrop hidden">
+  <div class="modal-box" style="padding:24px;text-align:center">
+    <div style="display:flex;justify-content:flex-end;margin-bottom:8px">
+      <button id="close-two-factor-modal" class="btn btn-icon btn-ghost"><i data-lucide="x" style="width:16px;height:16px"></i></button>
+    </div>
+    <div style="width:56px;height:56px;background:rgba(59,130,246,.12);border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 14px">
+      <i data-lucide="shield" style="width:26px;height:26px;color:var(--accent)"></i>
+    </div>
+    <h3 style="font-weight:700;color:var(--text-primary);margin-bottom:6px">Two-Factor Authentication</h3>
+    <p style="font-size:.85rem;color:var(--text-secondary);margin-bottom:18px">Add an extra layer of security using an authenticator app.</p>
+    <div style="display:flex;flex-direction:column;gap:8px">
+      <button id="setup-2fa-btn" class="btn btn-primary btn-full">Setup 2FA with Authenticator App</button>
+      <button id="cancel-2fa-setup" class="btn btn-ghost btn-full">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- Deactivate Account -->
+<div id="deactivate-account-modal" class="modal-backdrop hidden">
+  <div class="modal-box" style="padding:28px;text-align:center">
+    <div style="width:52px;height:52px;background:rgba(245,158,11,.12);border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 14px">
+      <i data-lucide="pause-circle" style="width:24px;height:24px;color:#f59e0b"></i>
+    </div>
+    <h3 style="font-weight:700;color:var(--text-primary);margin-bottom:6px">Deactivate Account</h3>
+    <p style="font-size:.85rem;color:var(--text-secondary);margin-bottom:20px">Your account will be temporarily disabled. Reactivate anytime by signing in again.</p>
+    <div style="display:flex;justify-content:center;gap:10px">
+      <button id="cancel-deactivate-account" class="btn btn-ghost">Cancel</button>
+      <button id="confirm-deactivate-account" class="btn" style="background:#f59e0b;color:#fff">Deactivate</button>
+    </div>
+  </div>
+</div>
+
+<!-- Delete Account -->
+<div id="delete-account-modal" class="modal-backdrop hidden">
+  <div class="modal-box" style="padding:28px;text-align:center">
+    <div style="width:52px;height:52px;background:rgba(239,68,68,.12);border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 14px">
+      <i data-lucide="alert-triangle" style="width:24px;height:24px;color:#ef4444"></i>
+    </div>
+    <h3 style="font-weight:700;color:var(--text-primary);margin-bottom:6px">Delete Account</h3>
+    <p style="font-size:.85rem;color:var(--text-secondary);margin-bottom:20px">This action cannot be undone. All your data will be permanently removed.</p>
+    <div style="display:flex;justify-content:center;gap:10px">
+      <button id="cancel-delete-account" class="btn btn-ghost">Cancel</button>
+      <button id="confirm-delete-account" class="btn btn-danger">Delete Permanently</button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast container -->
+<div id="toast-container"></div>
+
+<!-- ═══ JS Files ═══ -->
+<script src="js/dashboard.js"></script>
+<script src="js/predictions.js"></script>
+<script src="js/recommendations.js"></script>
+<script src="js/reports.js"></script>
+<script src="js/settings.js"></script>
+<script src="js/subscription.js"></script>
+<script src="js/app.js"></script>
+
+<script>
+  // Init Lucide icons after all content is parsed
+  document.addEventListener('DOMContentLoaded', () => {
+    if (window.lucide) lucide.createIcons();
+  });
+</script>
+
+</body>
+</html>
